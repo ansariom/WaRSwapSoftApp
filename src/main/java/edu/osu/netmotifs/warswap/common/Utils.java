@@ -1,20 +1,45 @@
-/** Copyright (C) 2015 
- * @author Mitra Ansariola 
- * 
- * This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+/**
+Copyright (c) 2015 Oregon State University
+All Rights Reserved.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
-    Contact info:  megrawm@science.oregonstate.edu
+AUTHOR
+  Mitra Ansariola
+  
+  Department of Botany and Plant Pathology 
+  2082 Cordley Hall
+  Oregon State University
+  Corvallis, OR 97331-2902
+  
+  E-mail:  megrawm@science.oregonstate.edu 
+  http://bpp.oregonstate.edu/
 
+====================================================================
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for educational, research and non-profit purposes, without fee,
+and without a written agreement is hereby granted, provided that the above
+copyright notice, this paragraph and the following three paragraphs appear in
+all copies. 
+
+Permission to incorporate this software into commercial products may be obtained
+by contacting Oregon State University Office of Technology Transfer.
+
+This software program and documentation are copyrighted by Oregon State
+University. The software program and documentation are supplied "as is", without
+any accompanying services from Oregon State University. OSU does not warrant
+that the operation of the program will be uninterrupted or error-free. The
+end-user understands that the program was developed for research purposes and is
+advised not to rely exclusively on the program for any reason. 
+
+IN NO EVENT SHALL OREGON STATE UNIVERSITY BE LIABLE TO ANY PARTY FOR DIRECT,
+INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF OREGON
+STATE UNIVERSITY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. OREGON STATE
+UNIVERSITY SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+AND ANY STATUTORY WARRANTY OF NON-INFRINGEMENT. THE SOFTWARE PROVIDED HEREUNDER
+IS ON AN "AS IS" BASIS, AND OREGON STATE UNIVERSITY HAS NO OBLIGATIONS TO
+PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS. 
  */
 
 package edu.osu.netmotifs.warswap.common;
@@ -33,12 +58,131 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import edu.osu.netmotifs.subenum.ByteArray;
 import edu.osu.netmotifs.warswap.common.exception.VertexFileFormatException;
 
 public class Utils {
+	public static String getAdjMtxOfSubgraph(long l, int motifSize, long values, int subgNo) {
+		String outMtx = "";
+		byte[] arr = ByteArray.longToByteArray(l, motifSize * motifSize * 2);
+//		System.out.println(Arrays.toString(arr));
+		
+		for (int i = 0; i < motifSize; i++) {
+			if (i == 0)
+				outMtx = subgNo + ",";
+			for (int j = 0; j < motifSize; j++) {
+				outMtx = outMtx + arr[(i * motifSize) + j];
+			}
+			if (i == 0)
+				outMtx = outMtx + ", " + values + "\n";
+			else
+				outMtx += "\n";
+		}
+		
+    	return outMtx += "\n";
+	}
+	
+	public static String getCanonicalLabeling(long longValueOfSubg, int motifSize) throws IOException {
+		char[] matrix = getAdjMtxOfSubgraph(longValueOfSubg, motifSize, 2, 1).toCharArray();
+		int[] lab = new int[motifSize];
+		int[] permutationList = generatePermutationList(motifSize);
+		
+		int l = 3;
+		int a = 0, b = 0, k = 0;
+		char[] max = new char[l * l];
+		for (int i = 0; i < l * l; i++) {
+			max[i] = '0';
+		}
+		for (int count = 0; count < permutationList.length / l; count++) {
+			boolean compare = true;
+			int turn = 0;
+			int nn = 0;
+			int cc = count * l;
+			for (int i = 0; i < l; i++) {
+				a = permutationList[cc + i];
+				nn = a * l;
+				for (int j = 0; j < l; j++) {
+					b = permutationList[cc + j];
+					k = nn + b ;
+					if (i == j)
+						continue;
+					char c = matrix[k];
+					int index = (i * l) + j;
+					if (compare) {
+						if (max[index] < c) {
+							turn = 1;
+							compare = false;
+							max[index] = c;
+						} else if (max[index] > c)
+							compare = false;
+					} else if (turn == 1) {
+						max[index] = c;
+					}
+				}
+			}
+			if (turn == 1) {
+				for (int i = 0; i < l; i++) {
+					lab[i] = permutationList[cc + i];
+				}
+			}
+		}
+		char[] tempMtx = new char[motifSize* motifSize];
+		char[] temp2Mtx = new char[motifSize * motifSize];
+		for (int i = 0; i < lab.length; i++) {
+			for (int j = 0; j < lab.length; j++) {
+				// exchange rows
+				tempMtx[(i * motifSize) + j] = matrix[(lab[i] * motifSize) + j];
+			}
+		}
+		for (int i = 0; i < lab.length; i++) {
+			for (int j = 0; j < lab.length; j++) {
+				// exchange rows
+				temp2Mtx[(j * motifSize) + i] = tempMtx[(j * motifSize) + lab[i]];
+			}
+		}
+		
+		return Arrays.toString(temp2Mtx);
+	}
+	
+	public static int[] generatePermutationList(int motifSize) {
+		List<Integer> permList = new ArrayList<Integer>();
+		String permString = "";
+		for (int i = 0; i < motifSize; i++) {
+			permString += i;
+		}
+		permutation(permString, permList);
+		int[] permutationList = new int[permList.size()];
+		for (int i = 0; i < permList.size() / motifSize; i++) {
+			for (int j = 0; j < motifSize; j++) {
+				int index = i * motifSize + j;
+				permutationList[index] = (permList.get(index));
+			}
+		}
+		return permutationList;
+
+	}
+	public static void permutation(String str, List<Integer> permList) {
+		permutation("", str, permList);
+	}
+
+	private static void permutation(String prefix, String str,
+			List<Integer> permList) {
+		int n = str.length();
+		if (n == 0) {
+			for (int i = 0; i < prefix.length(); i++) {
+				permList.add(Integer.valueOf(prefix.substring(i, i + 1)));
+			}
+		} else {
+			for (int i = 0; i < n; i++)
+				permutation(prefix + str.charAt(i),
+						str.substring(0, i) + str.substring(i + 1, n), permList);
+		}
+	}
+
 
 	public static boolean isNumeric(String string) {
 		return string.matches("^[-+]?\\d+(\\.\\d+)?$");

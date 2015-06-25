@@ -1,21 +1,45 @@
 /**
-/** Copyright (C) 2015 
- * @author Mitra Ansariola 
- * 
- * This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+Copyright (c) 2015 Oregon State University
+All Rights Reserved.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
-    Contact info:  megrawm@science.oregonstate.edu
+AUTHOR
+  Mitra Ansariola
+  
+  Department of Botany and Plant Pathology 
+  2082 Cordley Hall
+  Oregon State University
+  Corvallis, OR 97331-2902
+  
+  E-mail:  megrawm@science.oregonstate.edu 
+  http://bpp.oregonstate.edu/
 
+====================================================================
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for educational, research and non-profit purposes, without fee,
+and without a written agreement is hereby granted, provided that the above
+copyright notice, this paragraph and the following three paragraphs appear in
+all copies. 
+
+Permission to incorporate this software into commercial products may be obtained
+by contacting Oregon State University Office of Technology Transfer.
+
+This software program and documentation are copyrighted by Oregon State
+University. The software program and documentation are supplied "as is", without
+any accompanying services from Oregon State University. OSU does not warrant
+that the operation of the program will be uninterrupted or error-free. The
+end-user understands that the program was developed for research purposes and is
+advised not to rely exclusively on the program for any reason. 
+
+IN NO EVENT SHALL OREGON STATE UNIVERSITY BE LIABLE TO ANY PARTY FOR DIRECT,
+INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF OREGON
+STATE UNIVERSITY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. OREGON STATE
+UNIVERSITY SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+AND ANY STATUTORY WARRANTY OF NON-INFRINGEMENT. THE SOFTWARE PROVIDED HEREUNDER
+IS ON AN "AS IS" BASIS, AND OREGON STATE UNIVERSITY HAS NO OBLIGATIONS TO
+PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS. 
  */
 
 package edu.osu.netmotifs.warswap;
@@ -37,7 +61,7 @@ import org.apache.log4j.Logger;
 import edu.osu.netmotifs.warswap.common.DivisionByZeroException;
 import edu.osu.netmotifs.warswap.common.Edge;
 import edu.osu.netmotifs.warswap.common.GenerateRandom;
-import edu.osu.netmotifs.warswap.common.ListReverseIndexComparator;
+import edu.osu.netmotifs.warswap.common.ListReverseIndexComparatorInt;
 import edu.osu.netmotifs.warswap.common.Utils;
 import edu.osu.netmotifs.warswap.common.Vertex;
 
@@ -191,7 +215,7 @@ public class DrawRandGraphWithSwaps {
 		 * Calculate Probabilities 1- Multiply source and target degrees 2-
 		 * Calculate Formula in the paper
 		 */
-		ListReverseIndexComparator comparator = new ListReverseIndexComparator(
+		ListReverseIndexComparatorInt comparator = new ListReverseIndexComparatorInt(
 				srcVDegList);
 		Integer[] srcDegIdxes = comparator.createIndexArray();
 		Arrays.sort(srcDegIdxes, comparator);

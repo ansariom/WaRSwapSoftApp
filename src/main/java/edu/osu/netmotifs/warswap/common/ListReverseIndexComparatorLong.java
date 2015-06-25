@@ -22,10 +22,10 @@ import java.util.List;
 
  */
 
-public class ListReverseIndexComparator implements Comparator<Integer> {
-	private final List<Integer> array;
+public class ListReverseIndexComparatorLong implements Comparator<Integer> {
+	private final List<Long> array;
 
-	public ListReverseIndexComparator(List<Integer> list) {
+	public ListReverseIndexComparatorLong(List<Long> list) {
 		array = list;
 	}
 

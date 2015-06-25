@@ -11,7 +11,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import edu.osu.netmotifs.warswap.common.ArrayIndexComparator;
-import edu.osu.netmotifs.warswap.common.ListReverseIndexComparator;
+import edu.osu.netmotifs.warswap.common.ListReverseIndexComparatorInt;
 import edu.osu.netmotifs.warswap.common.Vertex;
 
 public class TestCollections {
@@ -78,7 +78,7 @@ public class TestCollections {
 		l.add(Integer.valueOf(12));
 		l.add(Integer.valueOf(45));
 
-		ListReverseIndexComparator comparator = new ListReverseIndexComparator(
+		ListReverseIndexComparatorInt comparator = new ListReverseIndexComparatorInt(
 				l);
 		Integer[] srcDegIdxes = comparator.createIndexArray();
 		Arrays.sort(srcDegIdxes, comparator);
