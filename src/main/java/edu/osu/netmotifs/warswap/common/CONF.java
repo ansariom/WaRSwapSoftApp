@@ -135,7 +135,8 @@ public class CONF implements Serializable {
 
 	public static boolean selfLoops = true;
 
-	public static String MOTIFS_OUT_FILE_NAME = "motifs.OUT";
+	public static final String MOTIFS_OUT_FILE_NAME = "motifs.OUT";
+	public static final String MOTIFS_HTML_OUT_FILE_NAME = "motifs.html";
 
 	public static void setRunningMode(String runningMode) {
 		properties.setProperty(RUNNING_MODE_KEY, runningMode);
