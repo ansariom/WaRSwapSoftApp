@@ -2,6 +2,7 @@ package edu.osu.netmotifs.warswap.common;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.CompletionService;
@@ -60,6 +61,9 @@ public class CONF implements Serializable {
 	public static final String LINUX_OS = "LINUX";
 	public static final String RUNNING_MODE = PC_MODE;
 	public static final String level = "INFO";
+	
+	public static final String ERROR_MSG_TYPE = "Error";
+	public static final String INFO_MSG_TYPE = "INFO";
 	// public static final String level = "DEBUG";
 	public static byte TF_Color = 0;
 	public static byte MIR_Color = 1;
@@ -126,6 +130,8 @@ public class CONF implements Serializable {
 	public static final String INFINIT = "Inf";
 
 	public static final String MOTIFS_OUT_DIR = "motifs_output";
+
+	public static final String NEWLINE = "\n";
 
 	public static boolean selfLoops = true;
 

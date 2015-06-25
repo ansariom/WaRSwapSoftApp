@@ -18,620 +18,1453 @@
  */
 package edu.osu.netmotifs.warswap.ui;
 
+import static edu.osu.netmotifs.warswap.common.CONF.DIR_SEP;
+import static edu.osu.netmotifs.warswap.common.CONF.ERROR_MSG_TYPE;
+import static edu.osu.netmotifs.warswap.common.CONF.FAILE_STATUS;
+import static edu.osu.netmotifs.warswap.common.CONF.GENE_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.GENE_STR;
+import static edu.osu.netmotifs.warswap.common.CONF.INFO_MSG_TYPE;
+import static edu.osu.netmotifs.warswap.common.CONF.MIR_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.MIR_STR;
+import static edu.osu.netmotifs.warswap.common.CONF.MOTIFS_OUT_DIR;
+import static edu.osu.netmotifs.warswap.common.CONF.MOTIFS_OUT_FILE_NAME;
+import static edu.osu.netmotifs.warswap.common.CONF.NEWLINE;
+import static edu.osu.netmotifs.warswap.common.CONF.OUT_DIR_NAME;
+import static edu.osu.netmotifs.warswap.common.CONF.SL_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.TF_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.TF_STR;
+import static edu.osu.netmotifs.warswap.common.CONF.pool;
+
+import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Image;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Calendar;
+import java.util.HashMap;
 
 import javax.swing.ImageIcon;
+import javax.swing.JColorChooser;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 
-import edu.osu.netmotifs.warswap.common.CONF;
+import edu.osu.netmotifs.warswap.JWarswapMultiThread;
 import edu.osu.netmotifs.warswap.common.CreateDirectory;
+import edu.osu.netmotifs.warswap.common.Utils;
+import edu.osu.netmotifs.warswap.common.exception.DuplicateItemException;
+import edu.osu.netmotifs.warswap.common.exception.EdgeFileDoesNotExistException;
+import edu.osu.netmotifs.warswap.common.exception.EdgeFileFormatException;
+import edu.osu.netmotifs.warswap.common.exception.VertexEdgeDontMatchException;
+import edu.osu.netmotifs.warswap.common.exception.VertexFileDoesNotExistException;
+import edu.osu.netmotifs.warswap.common.exception.VertexFileFormatException;
 
 /**
  * This class provides user interface for running WaRSwap Software Application
+ * 
  * @author mitra
  * @Date 6/26/2015
  */
-public class StartWarswapSoftApp extends JFrame implements ActionListener, PropertyChangeListener {
-	    /**
-	 * 
-	 */
+public class StartWarswapSoftApp extends JFrame implements ActionListener,
+		PropertyChangeListener {
+
 	private static final long serialVersionUID = -7444783256972789874L;
-		/**
-	     * Creates new form NewWaRSwapUI
-	     */
-	    public StartWarswapSoftApp() {
-	    	initComponents();
-	    	initActions();
-	    }
 
-	    private void initActions() {
-	    	initInOutActions();
-	    	initOptions();
-		}
-	    
-	    private void initOptions() {
-	    	motifSizeCombo.addActionListener(new ActionListener() {
+	private HashMap<String, String> vTypeHash = new HashMap<String, String>();
+	HashMap<Integer, String> vHash = new HashMap<Integer, String>();
+	HashMap<Integer, Color> colorHash = new HashMap<Integer, Color>();
+	private int maxVId = 0;
+	private int maxEId = 0;
+	private String motifOutputFile = "";
+	
+	private Task task;
+	
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					if (motifSizeCombo.getSelectedItem().toString()
-							.equalsIgnoreCase("1")
-							|| motifSizeCombo.getSelectedItem().toString()
-									.equalsIgnoreCase("2")) {
-						selfLoopCheck.setSelected(true);
-					} else {
-						selfLoopCheck.setEnabled(true);
-					}
-				}
-			});			
-		}
+	/**
+	 * This inner class runs motif discovery in separate thread. 
+	 * Input options will be checked and feeded into main algorithm
+	 * to start randomization and enumeration and motif calculations 
+	 * @author mitra
+	 *
+	 */
+	class Task extends SwingWorker<String, Void> {
+		
+		private boolean isRunning = false;
 
-		/**
-	     * initProperties and set actions for in/out buttons
-	     */
-	    private void initInOutActions() {
-	    	ImageIcon icon = new ImageIcon("images/browse.jpg");
-	    	Image img = icon.getImage() ;  
-	    	Image newimg = img.getScaledInstance( 40, 20,  java.awt.Image.SCALE_SMOOTH ) ;  
-	    	icon = new ImageIcon( newimg );
-	    	
-	    	inVtxBtn.setText("");
-	    	inVtxBtn.setIcon(icon);
-			inVtxBtn.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					File file = new File(inVtxTxt.getText());
-					String fPath = ".";
-					if (!file.isFile() && inVtxTxt.getText() != null && !inVtxTxt.getText().equalsIgnoreCase(""))
-						fPath = file.getParent();
-					else 
-						fPath = file.getAbsolutePath();
-					JFileChooser chooser = new JFileChooser(new File(fPath));
-					int returnVal = chooser.showOpenDialog(StartWarswapSoftApp.this);
-					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						file = chooser.getSelectedFile();
-						String inPath = file.getAbsolutePath();
-						inVtxTxt.setText(inPath);
-					}
-				}
-			});
+		@Override
+		public String doInBackground() throws Exception {
+			int progress = 0;
+			setProgress(progress);
 			
+			String inEdgeFile = inEdgTxt.getText();
+			String inDir = new File(inEdgeFile).getParent();
+			String inVtxFile = inVtxTxt.getText();
+			int motifSize = Integer.valueOf(motifSizeCombo.getSelectedItem().toString());
+			int nOfRandNets = Integer.valueOf(randNetTxt.getText());
+			motifOutputFile = outDirTxt.getText() + DIR_SEP + MOTIFS_OUT_FILE_NAME;
 			
-			inEdgBtn.setText("");
-			inEdgBtn.setIcon(icon);
-			inEdgBtn.addActionListener(new ActionListener() {
+			// Input options check
+			JWarswapMultiThread jWarswapMultiThread = null;
+			try {
+				inputVertexFormatCheck(inVtxFile);
+				inputEdgeFormatCheck(inEdgeFile);
+				jWarswapMultiThread = new JWarswapMultiThread(inEdgeFile, inVtxFile,
+						inDir, OUT_DIR_NAME, motifSize);
+			} catch (Exception e) {
+				updateReportConsole(ERROR_MSG_TYPE, e.getMessage());
+				e.printStackTrace();
+				throw e;
+			} 
+				
+			// Initialize main thread with configured options
+			jWarswapMultiThread.setNoOfIterations(nOfRandNets);
+			jWarswapMultiThread.setSignOutFile(motifOutputFile);
+			jWarswapMultiThread.setSelfLoops(selfLoopCheck.isSelected());
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					File file = new File(inEdgTxt.getText());
-					String fPath = ".";
-					if (!file.isFile() && inEdgTxt.getText() != null && !inEdgTxt.getText().equalsIgnoreCase(""))
-						fPath = file.getParent();
-					else 
-						fPath = file.getAbsolutePath();
+			reportArea.setText("");
+			updateReportConsole(INFO_MSG_TYPE, "Motif discovery started ...");
+			updateReportConsole(INFO_MSG_TYPE, "Input vertex file: " + inVtxFile);
+			updateReportConsole(INFO_MSG_TYPE, "Input edge file: " + inEdgeFile);
+			updateReportConsole(INFO_MSG_TYPE, "Motif size: " + motifSize);
+			
+			try {
+				pool.submit(jWarswapMultiThread);
+				isRunning = true;
+			}catch(Throwable t) {
+				t.printStackTrace();
+			}
+			
+			// Wait until search completes
+			while (progress < 100) {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException ignore) {
+					ignore.printStackTrace();
+				}
+				
+				if (FAILE_STATUS.equalsIgnoreCase(jWarswapMultiThread.getStatus())) {
+					progress = 0;
+					updateReportConsole(ERROR_MSG_TYPE, jWarswapMultiThread.getErrorMsg());
+					break;
+				}
+				
+				progress = (((jWarswapMultiThread.getFinishedJobs() * 100) / nOfRandNets));
+				setProgress(Math.min(progress, 100));
+				int progressNo = jWarswapMultiThread.getFinishedJobs();
+				if (progressNo > Integer.valueOf(randNetTxt.getText()))
+					progressNo = Integer.valueOf(randNetTxt.getText());
+				
+				progressLbl.setText(progressNo	+ " out of " + randNetTxt.getText()
+						+ " networks processed.");
+				progressLbl.setForeground(Color.black);
+			}
+			
+			if (progress >= 100) {
+				updateReportConsole(INFO_MSG_TYPE, "Randomization and enumeration of subgraphs completed!");
+				updateReportConsole(INFO_MSG_TYPE, "Waiting for extracting motif information ...");
+				progress = 100;
+			}
+			while (!jWarswapMultiThread.isDone() || FAILE_STATUS.equalsIgnoreCase(jWarswapMultiThread.getStatus())) {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException ignore) {
+					ignore.printStackTrace();
+				}
+			}
+			setProgress(progress);
+			return String.valueOf(progress);
+		}
+
+		/*
+		 * Executed in event dispatching thread
+		 */
+		@Override
+		public void done() {
+			try {
+				get();
+				pool.take().get();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			Toolkit.getDefaultToolkit().beep();
+			activateUIItems();
+			setCursor(null); // turn off the wait cursor
+			if (getProgress() == 100) {
+				updateReportConsole(INFO_MSG_TYPE, "Motif discovery completed!");
+				updateReportConsole(INFO_MSG_TYPE, "Output files are generated and located at: " + outDirTxt.getText() + "\n");
+			}
+		}
+		
+		public void inputVertexFormatCheck(String vertexFile) throws Exception {
+			vHash.clear();
+			maxVId = 0;
+			//1- If it is a valid file
+			File vFile = new File(vertexFile);
+			if (!vFile.isFile() || vFile.isDirectory())
+				throw new VertexFileDoesNotExistException();
+				
+			//2- If it contains two columns with desired labels (TF,MIR,GENE)
+			InputStream inputStream = new FileInputStream(vFile);
+			BufferedReader bufferedReader = new BufferedReader(
+					new InputStreamReader(inputStream));
+			String line = null;
+			while ((line = bufferedReader.readLine()) != null) {
+				String[] vParts = line.split("\t");
+				if (vParts.length != 2)
+					throw new VertexFileFormatException();
+				try {
+					int vId = Integer.valueOf(vParts[0]);
+					if (vId > maxVId)
+						maxVId = vId;
+					if (vHash.get(vId) != null)
+						throw new DuplicateItemException("Input vertex file format error: duplicate entry ( " + vId + " )!");
+					vHash.put(vId, "-");
+				} catch (NumberFormatException e) {
+					throw new VertexFileFormatException();
+				}
+				if (vTypeHash.get(vParts[1]) == null)
+					throw new VertexFileFormatException();
+			}
+			bufferedReader.close();
+			inputStream.close();
+		}
+		
+		
+		public void inputEdgeFormatCheck(String edgeFile) throws Exception {
+			//1- If it is a valid file
+			InputStream inputStream = null;
+			BufferedReader bufferedReader = null;
+			try {
+				maxEId = 0;
+				HashMap<String, String> eHashMap = new HashMap<String, String>();
+				File eFile = new File(edgeFile);
+				if (!eFile.isFile() || eFile.isDirectory())
+					throw new EdgeFileDoesNotExistException();
 					
-					JFileChooser chooser = new JFileChooser(new File(fPath));
-					int returnVal = chooser.showOpenDialog(StartWarswapSoftApp.this);
-					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						file = chooser.getSelectedFile();
-						String inPath = file.getAbsolutePath();
-						inEdgTxt.setText(inPath);
-						String outPathDir = new File(".").getAbsolutePath() + CONF.DIR_SEP + CONF.MOTIFS_OUT_DIR;
-						CreateDirectory.createDir(outPathDir);
-						outDirTxt.setText(outPathDir);
+				//2- If it contains two columns with desired labels (TF,MIR,GENE)
+				inputStream = new FileInputStream(eFile);
+				bufferedReader = new BufferedReader(
+						new InputStreamReader(inputStream));
+				String line = null;
+				while ((line = bufferedReader.readLine()) != null) {
+					String[] eParts = line.split("\t");
+					if (eParts.length != 2) 
+						throw new EdgeFileFormatException();
+					int v1 = 0, v2 = 0;
+					try {
+						v1 = Integer.valueOf(eParts[0]);
+						v2 = Integer.valueOf(eParts[1]);
+					} catch (NumberFormatException e) {
+						throw new EdgeFileFormatException();
 					}
+					if (vHash.get(v1) == null || vHash.get(v2) == null) 
+						throw new VertexEdgeDontMatchException();
+					String edgeKey = v1 + "_" + v2;
+					if (eHashMap.get(edgeKey) != null) 
+						throw new DuplicateItemException("Input edge file format error : douplicate entry ( " + edgeKey + " )");
+						
+					if (v1 > maxEId)
+						maxEId = v1;
+					if (v2 > maxEId)
+						maxEId = v2;
 				}
-			});
-
-			outDirBtn.setText("");
-			outDirBtn.setIcon(icon);
-			outDirBtn.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					File file = new File(outDirTxt.getText());
-					String fPath = ".";
-					if (!file.isFile() && outDirTxt.getText() != null && !outDirTxt.getText().equalsIgnoreCase(""))
-						fPath = file.getParent();
-					else 
-						fPath = file.getAbsolutePath();
-					JFileChooser chooser = new JFileChooser(new File(fPath));
-					chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-				    chooser.setAcceptAllFileFilterUsed(false);
-					int returnVal = chooser.showOpenDialog(StartWarswapSoftApp.this);
-					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						file = chooser.getSelectedFile();
-						outDirTxt.setText(file.getAbsolutePath());
-					}
-
+				if (maxEId != maxVId) {
+					bufferedReader.close();
+					throw new VertexEdgeDontMatchException();
 				}
-			});		}
 
-		/**
-	     * This method is called from within the constructor to initialize the form.
-	     * WARNING: Do NOT modify this code. The content of this method is always
-	     * regenerated by the Form Editor.
-	     */
-	    
-	    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
-	    private void initComponents() {
+			} catch (Exception e) {
+				throw e;
+			} finally {
+				inputStream.close();
+				bufferedReader.close();
+			}
+		}
+	}
 
-	        mainSplitPnl = new javax.swing.JSplitPane();
-	        resSplitPnl = new javax.swing.JSplitPane();
-	        filterPnl = new javax.swing.JPanel();
-	        zscoreCheck = new javax.swing.JCheckBox();
-	        zscoreTxt = new javax.swing.JTextField();
-	        pvalCheck = new javax.swing.JCheckBox();
-	        pvalTxt = new javax.swing.JTextField();
-	        jPanel1 = new javax.swing.JPanel();
-	        jLabel1 = new javax.swing.JLabel();
-	        TFBtn = new javax.swing.JButton();
-	        jLabel2 = new javax.swing.JLabel();
-	        mirBtn = new javax.swing.JButton();
-	        jLabel3 = new javax.swing.JLabel();
-	        geneBtn = new javax.swing.JButton();
-	        jLabel4 = new javax.swing.JLabel();
-	        sloopBtn = new javax.swing.JButton();
-	        reloadBtn = new javax.swing.JButton();
-	        saveHtmBtn = new javax.swing.JButton();
-	        resultScrPnl = new javax.swing.JScrollPane();
-	        jPanel2 = new javax.swing.JPanel();
-	        jPanel3 = new javax.swing.JPanel();
-	        motifSizeLbl = new javax.swing.JLabel();
-	        motifSizeCombo = new javax.swing.JComboBox();
-	        selfLoopCheck = new javax.swing.JCheckBox();
-	        randNetLbl = new javax.swing.JLabel();
-	        randNetTxt = new javax.swing.JTextField();
-	        inOutPnl = new javax.swing.JPanel();
-	        inVtxLbl = new javax.swing.JLabel();
-	        inVtxTxt = new javax.swing.JTextField();
-	        inVtxBtn = new javax.swing.JButton();
-	        inEdgLbl = new javax.swing.JLabel();
-	        inEdgTxt = new javax.swing.JTextField();
-	        inEdgBtn = new javax.swing.JButton();
-	        outDirLbl = new javax.swing.JLabel();
-	        outDirTxt = new javax.swing.JTextField();
-	        outDirBtn = new javax.swing.JButton();
-	        jPanel4 = new javax.swing.JPanel();
-	        startBtn = new javax.swing.JButton();
-	        jProgressBar1 = new javax.swing.JProgressBar();
-	        jScrollPane1 = new javax.swing.JScrollPane();
-	        reportArea = new javax.swing.JTextArea();
-	        progressLbl = new javax.swing.JLabel();
-	        closeBtn = new javax.swing.JButton();
-	        helpBtn = new javax.swing.JButton();
+	private void updateReportConsole(String type, String message) {
+		reportArea.append(Calendar.getInstance().getTime() + "-" + type + ": " + message + NEWLINE);
+	}
+	
+	public StartWarswapSoftApp() {
+		vTypeHash.put(TF_STR, "0");
+		vTypeHash.put(MIR_STR, "1");
+		vTypeHash.put(GENE_STR, "2");
+		
+		colorHash.put(Integer.parseInt(String.valueOf(TF_Color)), Color.BLUE);
+		colorHash.put(Integer.parseInt(String.valueOf(MIR_Color)), Color.RED);
+		colorHash.put(Integer.parseInt(String.valueOf(GENE_Color)), Color.BLACK);
+		colorHash.put(Integer.parseInt(String.valueOf(SL_Color)), Color.CYAN);
+		
+		initComponents();
+		initActions();
+		initOptions();
+	}
 
-	        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-	        setPreferredSize(new java.awt.Dimension(1100, 700));
+	private void initActions() {
+		initInOutActions();
+		initOptions();
+		initButtonIcons();
+		initFilterActions();
+	}
+	
+	private void activateUIItems() {
+		mirBtn.setEnabled(true);
+		TFBtn.setEnabled(true);
+		geneBtn.setEnabled(true);
+		sloopBtn.setEnabled(true);
+		zscoreCheck.setEnabled(true);
+		pvalCheck.setEnabled(true);
+		saveHtmBtn.setEnabled(true);
+		reloadBtn.setEnabled(true);	
+		startBtn.setEnabled(true);
+	}
+	
+	private void deactivateUIItems() {
+		mirBtn.setEnabled(false);
+		TFBtn.setEnabled(false);
+		geneBtn.setEnabled(false);
+		sloopBtn.setEnabled(false);
 
-	        mainSplitPnl.setDividerLocation(630);
+		zscoreCheck.setEnabled(false);
+		zscoreTxt.setEnabled(false);
 
-	        resSplitPnl.setDividerLocation(210);
-	        resSplitPnl.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
-	        resSplitPnl.setToolTipText("");
-	        resSplitPnl.setPreferredSize(new java.awt.Dimension(400, 538));
+		pvalTxt.setEnabled(false);
+		pvalCheck.setEnabled(false);
+		
+		saveHtmBtn.setEnabled(false);
+		reloadBtn.setEnabled(false);
+		
+		startBtn.setEnabled(false);
+	}
 
-	        filterPnl.setBorder(javax.swing.BorderFactory.createTitledBorder("Filter results"));
-	        filterPnl.setPreferredSize(new java.awt.Dimension(400, 320));
-	        filterPnl.setRequestFocusEnabled(false);
 
-	        zscoreCheck.setText("Z-score greater than ");
+	private void initOptions() {
+		motifSizeCombo.addActionListener(new ActionListener() {
 
-	        zscoreTxt.setText("2.00");
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (motifSizeCombo.getSelectedItem().toString()
+						.equalsIgnoreCase("1")
+						|| motifSizeCombo.getSelectedItem().toString()
+								.equalsIgnoreCase("2")) {
+					selfLoopCheck.setSelected(true);
+				} else {
+					selfLoopCheck.setEnabled(true);
+				}
+			}
+		});
 
-	        pvalCheck.setText("P-value less than ");
+		selfLoopCheck.addActionListener(new ActionListener() {
 
-	        pvalTxt.setText("0.01");
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (motifSizeCombo.getSelectedItem().toString()
+						.equalsIgnoreCase("1")
+						|| motifSizeCombo.getSelectedItem().toString()
+								.equalsIgnoreCase("2")) {
+					selfLoopCheck.setSelected(true);
+				}
+			}
+		});
 
-	        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Color options"));
+	}
 
-	        jLabel1.setText("TF");
+	private void initFilterActions() {
+		sloopBtn.addActionListener(new ActionListener() {
 
-	        TFBtn.setBackground(java.awt.Color.blue);
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Color newColor = JColorChooser.showDialog(
+						StartWarswapSoftApp.this, "Choose color", Color.CYAN);
+				colorHash.put(Integer.parseInt(String.valueOf(SL_Color)),
+						newColor);
+				sloopBtn.setBackground(newColor);
+			}
+		});
+		TFBtn.addActionListener(new ActionListener() {
 
-	        jLabel2.setText("MIR");
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Color newColor = JColorChooser.showDialog(StartWarswapSoftApp.this,
+						"Choose color", Color.BLUE);
+				colorHash.put(Integer.parseInt(String.valueOf(TF_Color)),
+						newColor);
+				TFBtn.setBackground(newColor);
+			}
+		});
+		mirBtn.addActionListener(new ActionListener() {
 
-	        mirBtn.setBackground(java.awt.Color.red);
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Color newColor = JColorChooser.showDialog(StartWarswapSoftApp.this,
+						"Choose color", Color.RED);
+				colorHash.put(Integer.parseInt(String.valueOf(MIR_Color)),
+						newColor);
+				mirBtn.setBackground(newColor);
+			}
+		});
 
-	        jLabel3.setText("GENE");
+		geneBtn.addActionListener(new ActionListener() {
 
-	        geneBtn.setBackground(java.awt.Color.black);
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Color newColor = JColorChooser.showDialog(StartWarswapSoftApp.this,
+						"Choose color", Color.BLACK);
+				colorHash.put(
+						Integer.parseInt(String.valueOf(GENE_Color)),
+						newColor);
+				geneBtn.setBackground(newColor);
+			}
+		});
+		
+		mirBtn.setEnabled(false);
+		TFBtn.setEnabled(false);
+		geneBtn.setEnabled(false);
+		sloopBtn.setEnabled(false);
 
-	        jLabel4.setText("Self-loop");
+		zscoreCheck.setEnabled(false);
+		zscoreTxt.setEnabled(false);
 
-	        sloopBtn.setBackground(java.awt.Color.cyan);
-
-	        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-	        jPanel1.setLayout(jPanel1Layout);
-	        jPanel1Layout.setHorizontalGroup(
-	            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel1Layout.createSequentialGroup()
-	                .addComponent(jLabel1)
-	                .addGap(4, 4, 4)
-	                .addComponent(TFBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addGap(18, 18, 18)
-	                .addComponent(jLabel2)
-	                .addGap(3, 3, 3)
-	                .addComponent(mirBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addGap(18, 18, 18)
-	                .addComponent(jLabel3)
-	                .addGap(4, 4, 4)
-	                .addComponent(geneBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addGap(18, 18, 18)
-	                .addComponent(jLabel4)
-	                .addGap(3, 3, 3)
-	                .addComponent(sloopBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addGap(0, 57, Short.MAX_VALUE))
-	        );
-	        jPanel1Layout.setVerticalGroup(
-	            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel1Layout.createSequentialGroup()
-	                .addContainerGap()
-	                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addComponent(sloopBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(jLabel4)
-	                    .addComponent(geneBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(jLabel3)
-	                    .addComponent(mirBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                        .addComponent(jLabel1)
-	                        .addComponent(TFBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                    .addComponent(jLabel2))
-	                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-	        );
-
-	        reloadBtn.setText("Refresh");
-
-	        saveHtmBtn.setText("Save");
-
-	        javax.swing.GroupLayout filterPnlLayout = new javax.swing.GroupLayout(filterPnl);
-	        filterPnl.setLayout(filterPnlLayout);
-	        filterPnlLayout.setHorizontalGroup(
-	            filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(filterPnlLayout.createSequentialGroup()
-	                .addGroup(filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addGroup(filterPnlLayout.createSequentialGroup()
-	                        .addGroup(filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                            .addComponent(zscoreCheck)
-	                            .addComponent(pvalCheck))
-	                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                        .addGroup(filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                            .addComponent(zscoreTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                            .addComponent(pvalTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-	                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                .addGap(0, 12, Short.MAX_VALUE))
-	            .addGroup(filterPnlLayout.createSequentialGroup()
-	                .addGap(0, 0, Short.MAX_VALUE)
-	                .addComponent(reloadBtn)
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addComponent(saveHtmBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 96, javax.swing.GroupLayout.PREFERRED_SIZE))
-	        );
-	        filterPnlLayout.setVerticalGroup(
-	            filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(filterPnlLayout.createSequentialGroup()
-	                .addGroup(filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(zscoreCheck)
-	                    .addComponent(zscoreTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                .addGap(10, 10, 10)
-	                .addGroup(filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(pvalCheck)
-	                    .addComponent(pvalTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(filterPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(saveHtmBtn)
-	                    .addComponent(reloadBtn))
-	                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-	        );
-
-	        resSplitPnl.setTopComponent(filterPnl);
-
-	        resultScrPnl.setBorder(javax.swing.BorderFactory.createTitledBorder("Result browser"));
-	        resSplitPnl.setRightComponent(resultScrPnl);
-
-	        mainSplitPnl.setRightComponent(resSplitPnl);
-
-	        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder("Options"));
-
-	        motifSizeLbl.setText("Motif size");
-
-	        motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1", "2", "3", "4", "5", "6", "7" }));
-	        motifSizeCombo.setSelectedIndex(2);
-	        motifSizeCombo.setToolTipText("");
-
-	        selfLoopCheck.setSelected(true);
-	        selfLoopCheck.setText("Consider self-loops");
-
-	        randNetLbl.setText("No of random networks");
-
-	        randNetTxt.setColumns(5);
-	        randNetTxt.setText("2500");
-
-	        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-	        jPanel3.setLayout(jPanel3Layout);
-	        jPanel3Layout.setHorizontalGroup(
-	            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel3Layout.createSequentialGroup()
-	                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addGroup(jPanel3Layout.createSequentialGroup()
-	                        .addComponent(motifSizeLbl)
-	                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                        .addComponent(motifSizeCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                        .addGap(96, 96, 96)
-	                        .addComponent(selfLoopCheck))
-	                    .addGroup(jPanel3Layout.createSequentialGroup()
-	                        .addComponent(randNetLbl)
-	                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                        .addComponent(randNetTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-	                .addGap(0, 0, Short.MAX_VALUE))
-	        );
-	        jPanel3Layout.setVerticalGroup(
-	            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel3Layout.createSequentialGroup()
-	                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(motifSizeLbl)
-	                    .addComponent(motifSizeCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(selfLoopCheck))
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(randNetLbl)
-	                    .addComponent(randNetTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                .addGap(0, 0, Short.MAX_VALUE))
-	        );
-
-	        inOutPnl.setBorder(javax.swing.BorderFactory.createTitledBorder("Input/output "));
-
-	        inVtxLbl.setText("Vertex file");
-
-	        inVtxTxt.setColumns(30);
-
-	        inVtxBtn.setText("jButton1");
-
-	        inEdgLbl.setText("Edge file");
-
-	        inEdgTxt.setColumns(30);
-
-	        inEdgBtn.setText("jButton1");
-
-	        outDirLbl.setText("Output directory");
-
-	        outDirTxt.setColumns(30);
-
-	        outDirBtn.setText("jButton1");
-
-	        javax.swing.GroupLayout inOutPnlLayout = new javax.swing.GroupLayout(inOutPnl);
-	        inOutPnl.setLayout(inOutPnlLayout);
-	        inOutPnlLayout.setHorizontalGroup(
-	            inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(inOutPnlLayout.createSequentialGroup()
-	                .addGroup(inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-	                    .addGroup(inOutPnlLayout.createSequentialGroup()
-	                        .addComponent(outDirLbl)
-	                        .addGap(2, 2, 2)
-	                        .addComponent(outDirTxt))
-	                    .addGroup(inOutPnlLayout.createSequentialGroup()
-	                        .addComponent(inVtxLbl)
-	                        .addGap(3, 3, 3)
-	                        .addComponent(inVtxTxt, javax.swing.GroupLayout.PREFERRED_SIZE, 438, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                    .addGroup(inOutPnlLayout.createSequentialGroup()
-	                        .addComponent(inEdgLbl)
-	                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                        .addComponent(inEdgTxt)))
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addComponent(inVtxBtn)
-	                    .addComponent(inEdgBtn)
-	                    .addComponent(outDirBtn)))
-	        );
-	        inOutPnlLayout.setVerticalGroup(
-	            inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(inOutPnlLayout.createSequentialGroup()
-	                .addGroup(inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(inVtxLbl)
-	                    .addComponent(inVtxTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(inVtxBtn))
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(inEdgLbl)
-	                    .addComponent(inEdgTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(inEdgBtn))
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(inOutPnlLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(outDirLbl)
-	                    .addComponent(outDirTxt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(outDirBtn))
-	                .addGap(0, 0, Short.MAX_VALUE))
-	        );
-
-	        jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder("Run motif discovery"));
-
-	        startBtn.setText("Start ");
-
-	        reportArea.setColumns(20);
-	        reportArea.setRows(5);
-	        jScrollPane1.setViewportView(reportArea);
-
-	        progressLbl.setText("1 out of 100 networks processed.");
-
-	        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
-	        jPanel4.setLayout(jPanel4Layout);
-	        jPanel4Layout.setHorizontalGroup(
-	            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel4Layout.createSequentialGroup()
-	                .addGap(18, 18, 18)
-	                .addComponent(startBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addComponent(jProgressBar1, javax.swing.GroupLayout.PREFERRED_SIZE, 390, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                    .addComponent(progressLbl, javax.swing.GroupLayout.PREFERRED_SIZE, 331, javax.swing.GroupLayout.PREFERRED_SIZE))
-	                .addContainerGap(77, Short.MAX_VALUE))
-	            .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING)
-	        );
-	        jPanel4Layout.setVerticalGroup(
-	            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel4Layout.createSequentialGroup()
-	                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addGroup(jPanel4Layout.createSequentialGroup()
-	                        .addComponent(jProgressBar1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                        .addComponent(progressLbl))
-	                    .addGroup(jPanel4Layout.createSequentialGroup()
-	                        .addGap(6, 6, 6)
-	                        .addComponent(startBtn)))
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 272, Short.MAX_VALUE))
-	        );
-
-	        closeBtn.setText("Close");
-
-	        helpBtn.setText("Help");
-
-	        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-	        jPanel2.setLayout(jPanel2Layout);
-	        jPanel2Layout.setHorizontalGroup(
-	            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel2Layout.createSequentialGroup()
-	                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-	                    .addComponent(inOutPnl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-	                    .addComponent(jPanel4, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-	                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-	                        .addGap(0, 0, Short.MAX_VALUE)
-	                        .addComponent(helpBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                        .addComponent(closeBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE)))
-	                .addContainerGap())
-	        );
-	        jPanel2Layout.setVerticalGroup(
-	            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addGroup(jPanel2Layout.createSequentialGroup()
-	                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addComponent(inOutPnl, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-	                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-	                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-	                    .addComponent(closeBtn)
-	                    .addComponent(helpBtn))
-	                .addGap(0, 0, Short.MAX_VALUE))
-	        );
-
-	        mainSplitPnl.setLeftComponent(jPanel2);
-
-	        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-	        getContentPane().setLayout(layout);
-	        layout.setHorizontalGroup(
-	            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addComponent(mainSplitPnl, javax.swing.GroupLayout.DEFAULT_SIZE, 1021, Short.MAX_VALUE)
-	        );
-	        layout.setVerticalGroup(
-	            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-	            .addComponent(mainSplitPnl, javax.swing.GroupLayout.DEFAULT_SIZE, 669, Short.MAX_VALUE)
-	        );
-
-	        pack();
-	    }// </editor-fold>   
-
-	    /**
-	     * @param args the command line arguments
-	     */
-	    public static void main(String args[]) {
-	        /* Set the Nimbus look and feel */
-	        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-	        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-	         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-	         */
-	        try {
-	            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-	                if ("Nimbus".equals(info.getName())) {
-	                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-	                    break;
-	                }
-	            }
-	        } catch (ClassNotFoundException ex) {
-	            java.util.logging.Logger.getLogger(StartWarswapSoftApp.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	        } catch (InstantiationException ex) {
-	            java.util.logging.Logger.getLogger(StartWarswapSoftApp.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	        } catch (IllegalAccessException ex) {
-	            java.util.logging.Logger.getLogger(StartWarswapSoftApp.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-	            java.util.logging.Logger.getLogger(StartWarswapSoftApp.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	        }
-	        //</editor-fold>
-
-	        /* Create and display the form */
-	        java.awt.EventQueue.invokeLater(new Runnable() {
-	            public void run() {
-	                new StartWarswapSoftApp().setVisible(true);
-	            }
-	        });
-	    }
-
-	    // Variables declaration - do not modify                     
-	    private javax.swing.JButton TFBtn;
-	    private javax.swing.JButton closeBtn;
-	    private javax.swing.JPanel filterPnl;
-	    private javax.swing.JButton geneBtn;
-	    private javax.swing.JButton helpBtn;
-	    private javax.swing.JButton inEdgBtn;
-	    private javax.swing.JLabel inEdgLbl;
-	    private javax.swing.JTextField inEdgTxt;
-	    private javax.swing.JPanel inOutPnl;
-	    private javax.swing.JButton inVtxBtn;
-	    private javax.swing.JLabel inVtxLbl;
-	    private javax.swing.JTextField inVtxTxt;
-	    private javax.swing.JLabel jLabel1;
-	    private javax.swing.JLabel jLabel2;
-	    private javax.swing.JLabel jLabel3;
-	    private javax.swing.JLabel jLabel4;
-	    private javax.swing.JPanel jPanel1;
-	    private javax.swing.JPanel jPanel2;
-	    private javax.swing.JPanel jPanel3;
-	    private javax.swing.JPanel jPanel4;
-	    private javax.swing.JProgressBar jProgressBar1;
-	    private javax.swing.JScrollPane jScrollPane1;
-	    private javax.swing.JSplitPane mainSplitPnl;
-	    private javax.swing.JButton mirBtn;
-	    private javax.swing.JComboBox motifSizeCombo;
-	    private javax.swing.JLabel motifSizeLbl;
-	    private javax.swing.JButton outDirBtn;
-	    private javax.swing.JLabel outDirLbl;
-	    private javax.swing.JTextField outDirTxt;
-	    private javax.swing.JLabel progressLbl;
-	    private javax.swing.JCheckBox pvalCheck;
-	    private javax.swing.JTextField pvalTxt;
-	    private javax.swing.JLabel randNetLbl;
-	    private javax.swing.JTextField randNetTxt;
-	    private javax.swing.JButton reloadBtn;
-	    private javax.swing.JTextArea reportArea;
-	    private javax.swing.JSplitPane resSplitPnl;
-	    private javax.swing.JScrollPane resultScrPnl;
-	    private javax.swing.JButton saveHtmBtn;
-	    private javax.swing.JCheckBox selfLoopCheck;
-	    private javax.swing.JButton sloopBtn;
-	    private javax.swing.JButton startBtn;
-	    private javax.swing.JCheckBox zscoreCheck;
-	    private javax.swing.JTextField zscoreTxt;
-	    // End of variables declaration                   
-		@Override
-		public void propertyChange(PropertyChangeEvent evt) {
-			// TODO Auto-generated method stub
+		pvalTxt.setEnabled(false);
+		pvalCheck.setEnabled(false);
+		
+		saveHtmBtn.setEnabled(false);
+		reloadBtn.setEnabled(false);
+		
+		zscoreCheck.addActionListener(new ActionListener() {
 			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (zscoreCheck.isSelected())
+					zscoreTxt.setEnabled(true);
+				else
+					zscoreTxt.setEnabled(false);
+			}
+		});
+		
+		pvalCheck.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (pvalCheck.isSelected())
+					pvalTxt.setEnabled(true);
+				else
+					pvalTxt.setEnabled(false);
+			}
+		});
+		
+		ImageIcon icon = new ImageIcon("images/save.jpg");
+		Image img = icon.getImage();
+		Image newimg = img.getScaledInstance(20, 20,
+				java.awt.Image.SCALE_SMOOTH);
+		icon = new ImageIcon(newimg);
+		saveHtmBtn.setIcon(icon);
+		
+		icon = new ImageIcon("images/refresh.jpg");
+		img = icon.getImage();
+		newimg = img.getScaledInstance(20, 20,
+				java.awt.Image.SCALE_SMOOTH);
+		icon = new ImageIcon(newimg);
+		reloadBtn.setIcon(icon);
+	}
+
+	private void initButtonIcons() {
+
+		ImageIcon icon = new ImageIcon("images/start.jpg");
+		Image img = icon.getImage();
+		Image newimg = img.getScaledInstance(20, 20,
+				java.awt.Image.SCALE_SMOOTH);
+		icon = new ImageIcon(newimg);
+
+		startBtn.setText("Start");
+		startBtn.setActionCommand("start");
+		startBtn.addActionListener(this);
+		startBtn.setIcon(icon);
+
+		icon = new ImageIcon("images/close.jpg");
+		img = icon.getImage();
+		newimg = img.getScaledInstance(20, 20, java.awt.Image.SCALE_SMOOTH);
+		icon = new ImageIcon(newimg);
+
+		closeBtn.setIcon(icon);
+		closeBtn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int response = JOptionPane
+						.showConfirmDialog(null,
+								"Do you want to close the application?",
+								"Confirm", JOptionPane.YES_NO_OPTION,
+								JOptionPane.QUESTION_MESSAGE);
+				if (response == JOptionPane.YES_OPTION) {
+					System.exit(0);
+				}
+			}
+		});
+
+		icon = new ImageIcon("images/help.jpg");
+		img = icon.getImage();
+		newimg = img.getScaledInstance(20, 20, java.awt.Image.SCALE_SMOOTH);
+		icon = new ImageIcon(newimg);
+		helpBtn.setIcon(icon);
+
+	}
+
+	/**
+	 * initProperties and set actions for in/out buttons
+	 */
+	private void initInOutActions() {
+		ImageIcon icon = new ImageIcon("images/browse.jpg");
+		Image img = icon.getImage();
+		Image newimg = img.getScaledInstance(40, 20,
+				java.awt.Image.SCALE_SMOOTH);
+		icon = new ImageIcon(newimg);
+
+		inVtxBtn.setText("");
+		inVtxBtn.setIcon(icon);
+		inVtxBtn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				File file = new File(inVtxTxt.getText());
+				String fPath = ".";
+				if (!file.isFile() && inVtxTxt.getText() != null
+						&& !inVtxTxt.getText().equalsIgnoreCase(""))
+					fPath = file.getParent();
+				else
+					fPath = file.getAbsolutePath();
+				JFileChooser chooser = new JFileChooser(new File(fPath));
+				int returnVal = chooser
+						.showOpenDialog(StartWarswapSoftApp.this);
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					file = chooser.getSelectedFile();
+					String inPath = file.getAbsolutePath();
+					inVtxTxt.setText(inPath);
+				}
+			}
+		});
+
+		inEdgBtn.setText("");
+		inEdgBtn.setIcon(icon);
+		inEdgBtn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				File file = new File(inEdgTxt.getText());
+				String fPath = ".";
+				if (!file.isFile() && inEdgTxt.getText() != null
+						&& !inEdgTxt.getText().equalsIgnoreCase(""))
+					fPath = file.getParent();
+				else
+					fPath = file.getAbsolutePath();
+
+				JFileChooser chooser = new JFileChooser(new File(fPath));
+				int returnVal = chooser
+						.showOpenDialog(StartWarswapSoftApp.this);
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					file = chooser.getSelectedFile();
+					String inPath = file.getAbsolutePath();
+					inEdgTxt.setText(inPath);
+					String outPathDir = new File(".").getAbsolutePath()
+							+ DIR_SEP + MOTIFS_OUT_DIR;
+					CreateDirectory.createDir(outPathDir);
+					outDirTxt.setText(outPathDir);
+				}
+			}
+		});
+
+		outDirBtn.setText("");
+		outDirBtn.setIcon(icon);
+		outDirBtn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				File file = new File(outDirTxt.getText());
+				String fPath = ".";
+				if (!file.isFile() && outDirTxt.getText() != null
+						&& !outDirTxt.getText().equalsIgnoreCase(""))
+					fPath = file.getParent();
+				else
+					fPath = file.getAbsolutePath();
+				JFileChooser chooser = new JFileChooser(new File(fPath));
+				chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				chooser.setAcceptAllFileFilterUsed(false);
+				int returnVal = chooser
+						.showOpenDialog(StartWarswapSoftApp.this);
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					file = chooser.getSelectedFile();
+					outDirTxt.setText(file.getAbsolutePath());
+				}
+
+			}
+		});
+	}
+
+	/**
+	 * This method is called from within the constructor to initialize the form.
+	 * WARNING: Do NOT modify this code. The content of this method is always
+	 * regenerated by the Form Editor.
+	 */
+
+	// <editor-fold defaultstate="collapsed" desc="Generated Code">
+	private void initComponents() {
+
+		mainSplitPnl = new javax.swing.JSplitPane();
+		resSplitPnl = new javax.swing.JSplitPane();
+		filterPnl = new javax.swing.JPanel();
+		zscoreCheck = new javax.swing.JCheckBox();
+		zscoreTxt = new javax.swing.JTextField();
+		pvalCheck = new javax.swing.JCheckBox();
+		pvalTxt = new javax.swing.JTextField();
+		jPanel1 = new javax.swing.JPanel();
+		jLabel1 = new javax.swing.JLabel();
+		TFBtn = new javax.swing.JButton();
+		jLabel2 = new javax.swing.JLabel();
+		mirBtn = new javax.swing.JButton();
+		jLabel3 = new javax.swing.JLabel();
+		geneBtn = new javax.swing.JButton();
+		jLabel4 = new javax.swing.JLabel();
+		sloopBtn = new javax.swing.JButton();
+		reloadBtn = new javax.swing.JButton();
+		saveHtmBtn = new javax.swing.JButton();
+		resultScrPnl = new javax.swing.JScrollPane();
+		jPanel2 = new javax.swing.JPanel();
+		jPanel3 = new javax.swing.JPanel();
+		motifSizeLbl = new javax.swing.JLabel();
+		motifSizeCombo = new javax.swing.JComboBox();
+		selfLoopCheck = new javax.swing.JCheckBox();
+		randNetLbl = new javax.swing.JLabel();
+		randNetTxt = new javax.swing.JTextField();
+		inOutPnl = new javax.swing.JPanel();
+		inVtxLbl = new javax.swing.JLabel();
+		inVtxTxt = new javax.swing.JTextField();
+		inVtxBtn = new javax.swing.JButton();
+		inEdgLbl = new javax.swing.JLabel();
+		inEdgTxt = new javax.swing.JTextField();
+		inEdgBtn = new javax.swing.JButton();
+		outDirLbl = new javax.swing.JLabel();
+		outDirTxt = new javax.swing.JTextField();
+		outDirBtn = new javax.swing.JButton();
+		jPanel4 = new javax.swing.JPanel();
+		startBtn = new javax.swing.JButton();
+		progressBar = new javax.swing.JProgressBar();
+		jScrollPane1 = new javax.swing.JScrollPane();
+		reportArea = new javax.swing.JTextArea();
+		progressLbl = new javax.swing.JLabel();
+		closeBtn = new javax.swing.JButton();
+		helpBtn = new javax.swing.JButton();
+
+		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+		setPreferredSize(new java.awt.Dimension(1100, 700));
+
+		mainSplitPnl.setDividerLocation(630);
+
+		resSplitPnl.setDividerLocation(240);
+		resSplitPnl.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+		resSplitPnl.setToolTipText("");
+		resSplitPnl.setPreferredSize(new java.awt.Dimension(400, 538));
+
+		filterPnl.setBorder(javax.swing.BorderFactory
+				.createTitledBorder("Filter results"));
+		filterPnl.setPreferredSize(new java.awt.Dimension(400, 320));
+		filterPnl.setRequestFocusEnabled(false);
+
+		zscoreCheck.setText("Z-score greater than ");
+
+		zscoreTxt.setText("2.00");
+
+		pvalCheck.setText("P-value less than ");
+
+		pvalTxt.setText("0.01");
+
+		jPanel1.setBorder(javax.swing.BorderFactory
+				.createTitledBorder("Color options"));
+
+		jLabel1.setText("TF");
+
+		TFBtn.setBackground(java.awt.Color.blue);
+
+		jLabel2.setText("MIR");
+
+		mirBtn.setBackground(java.awt.Color.red);
+
+		jLabel3.setText("GENE");
+
+		geneBtn.setBackground(java.awt.Color.black);
+
+		jLabel4.setText("Self-loop");
+
+		sloopBtn.setBackground(java.awt.Color.cyan);
+
+		javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(
+				jPanel1);
+		jPanel1.setLayout(jPanel1Layout);
+		jPanel1Layout.setHorizontalGroup(jPanel1Layout.createParallelGroup(
+				javax.swing.GroupLayout.Alignment.LEADING).addGroup(
+				jPanel1Layout
+						.createSequentialGroup()
+						.addComponent(jLabel1)
+						.addGap(4, 4, 4)
+						.addComponent(TFBtn,
+								javax.swing.GroupLayout.PREFERRED_SIZE, 23,
+								javax.swing.GroupLayout.PREFERRED_SIZE)
+						.addGap(18, 18, 18)
+						.addComponent(jLabel2)
+						.addGap(3, 3, 3)
+						.addComponent(mirBtn,
+								javax.swing.GroupLayout.PREFERRED_SIZE, 23,
+								javax.swing.GroupLayout.PREFERRED_SIZE)
+						.addGap(18, 18, 18)
+						.addComponent(jLabel3)
+						.addGap(4, 4, 4)
+						.addComponent(geneBtn,
+								javax.swing.GroupLayout.PREFERRED_SIZE, 23,
+								javax.swing.GroupLayout.PREFERRED_SIZE)
+						.addGap(18, 18, 18)
+						.addComponent(jLabel4)
+						.addGap(3, 3, 3)
+						.addComponent(sloopBtn,
+								javax.swing.GroupLayout.PREFERRED_SIZE, 23,
+								javax.swing.GroupLayout.PREFERRED_SIZE)
+						.addGap(0, 57, Short.MAX_VALUE)));
+		jPanel1Layout
+				.setVerticalGroup(jPanel1Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel1Layout
+										.createSequentialGroup()
+										.addContainerGap()
+										.addGroup(
+												jPanel1Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addComponent(
+																sloopBtn,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																21,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(jLabel4)
+														.addComponent(
+																geneBtn,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																21,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(jLabel3)
+														.addComponent(
+																mirBtn,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																21,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addGroup(
+																jPanel1Layout
+																		.createParallelGroup(
+																				javax.swing.GroupLayout.Alignment.BASELINE)
+																		.addComponent(
+																				jLabel1)
+																		.addComponent(
+																				TFBtn,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				21,
+																				javax.swing.GroupLayout.PREFERRED_SIZE))
+														.addComponent(jLabel2))
+										.addContainerGap(
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												Short.MAX_VALUE)));
+
+		reloadBtn.setText("Refresh");
+
+		saveHtmBtn.setText("Save");
+
+		javax.swing.GroupLayout filterPnlLayout = new javax.swing.GroupLayout(
+				filterPnl);
+		filterPnl.setLayout(filterPnlLayout);
+		filterPnlLayout
+				.setHorizontalGroup(filterPnlLayout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								filterPnlLayout
+										.createSequentialGroup()
+										.addGroup(
+												filterPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addGroup(
+																filterPnlLayout
+																		.createSequentialGroup()
+																		.addGroup(
+																				filterPnlLayout
+																						.createParallelGroup(
+																								javax.swing.GroupLayout.Alignment.LEADING)
+																						.addComponent(
+																								zscoreCheck)
+																						.addComponent(
+																								pvalCheck))
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addGroup(
+																				filterPnlLayout
+																						.createParallelGroup(
+																								javax.swing.GroupLayout.Alignment.LEADING)
+																						.addComponent(
+																								zscoreTxt,
+																								javax.swing.GroupLayout.PREFERRED_SIZE,
+																								javax.swing.GroupLayout.DEFAULT_SIZE,
+																								javax.swing.GroupLayout.PREFERRED_SIZE)
+																						.addComponent(
+																								pvalTxt,
+																								javax.swing.GroupLayout.PREFERRED_SIZE,
+																								javax.swing.GroupLayout.DEFAULT_SIZE,
+																								javax.swing.GroupLayout.PREFERRED_SIZE)))
+														.addComponent(
+																jPanel1,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE))
+										.addGap(0, 12, Short.MAX_VALUE))
+						.addGroup(
+								filterPnlLayout
+										.createSequentialGroup()
+										.addGap(0, 0, Short.MAX_VALUE)
+										.addComponent(reloadBtn)
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addComponent(
+												saveHtmBtn,
+												javax.swing.GroupLayout.PREFERRED_SIZE,
+												96,
+												javax.swing.GroupLayout.PREFERRED_SIZE)));
+		filterPnlLayout
+				.setVerticalGroup(filterPnlLayout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								filterPnlLayout
+										.createSequentialGroup()
+										.addGroup(
+												filterPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(
+																zscoreCheck)
+														.addComponent(
+																zscoreTxt,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE))
+										.addGap(10, 10, 10)
+										.addGroup(
+												filterPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(pvalCheck)
+														.addComponent(
+																pvalTxt,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE))
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addComponent(
+												jPanel1,
+												javax.swing.GroupLayout.PREFERRED_SIZE,
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												javax.swing.GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												filterPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(
+																saveHtmBtn)
+														.addComponent(reloadBtn))
+										.addContainerGap(
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												Short.MAX_VALUE)));
+
+		resSplitPnl.setTopComponent(filterPnl);
+
+		resultScrPnl.setBorder(javax.swing.BorderFactory
+				.createTitledBorder("Result browser"));
+		resSplitPnl.setRightComponent(resultScrPnl);
+
+		mainSplitPnl.setRightComponent(resSplitPnl);
+
+		jPanel3.setBorder(javax.swing.BorderFactory
+				.createTitledBorder("Options"));
+
+		motifSizeLbl.setText("Motif size");
+
+		motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel(
+				new String[] { "1", "2", "3", "4", "5", "6", "7" }));
+		motifSizeCombo.setSelectedIndex(2);
+		motifSizeCombo.setToolTipText("");
+
+		selfLoopCheck.setSelected(true);
+		selfLoopCheck.setText("Consider self-loops");
+
+		randNetLbl.setText("No of random networks");
+
+		randNetTxt.setColumns(5);
+		randNetTxt.setText("2500");
+
+		javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(
+				jPanel3);
+		jPanel3.setLayout(jPanel3Layout);
+		jPanel3Layout
+				.setHorizontalGroup(jPanel3Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel3Layout
+										.createSequentialGroup()
+										.addGroup(
+												jPanel3Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addGroup(
+																jPanel3Layout
+																		.createSequentialGroup()
+																		.addComponent(
+																				motifSizeLbl)
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addComponent(
+																				motifSizeCombo,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				javax.swing.GroupLayout.DEFAULT_SIZE,
+																				javax.swing.GroupLayout.PREFERRED_SIZE)
+																		.addGap(96,
+																				96,
+																				96)
+																		.addComponent(
+																				selfLoopCheck))
+														.addGroup(
+																jPanel3Layout
+																		.createSequentialGroup()
+																		.addComponent(
+																				randNetLbl)
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addComponent(
+																				randNetTxt,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				javax.swing.GroupLayout.DEFAULT_SIZE,
+																				javax.swing.GroupLayout.PREFERRED_SIZE)))
+										.addGap(0, 0, Short.MAX_VALUE)));
+		jPanel3Layout
+				.setVerticalGroup(jPanel3Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel3Layout
+										.createSequentialGroup()
+										.addGroup(
+												jPanel3Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(
+																motifSizeLbl)
+														.addComponent(
+																motifSizeCombo,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(
+																selfLoopCheck))
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												jPanel3Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(
+																randNetLbl)
+														.addComponent(
+																randNetTxt,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE))
+										.addGap(0, 0, Short.MAX_VALUE)));
+
+		inOutPnl.setBorder(javax.swing.BorderFactory
+				.createTitledBorder("Input/output "));
+
+		inVtxLbl.setText("Vertex file");
+
+		inVtxTxt.setColumns(30);
+
+		inVtxBtn.setText("jButton1");
+
+		inEdgLbl.setText("Edge file");
+
+		inEdgTxt.setColumns(30);
+
+		inEdgBtn.setText("jButton1");
+
+		outDirLbl.setText("Output directory");
+
+		outDirTxt.setColumns(30);
+
+		outDirBtn.setText("jButton1");
+
+		javax.swing.GroupLayout inOutPnlLayout = new javax.swing.GroupLayout(
+				inOutPnl);
+		inOutPnl.setLayout(inOutPnlLayout);
+		inOutPnlLayout
+				.setHorizontalGroup(inOutPnlLayout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								inOutPnlLayout
+										.createSequentialGroup()
+										.addGroup(
+												inOutPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING,
+																false)
+														.addGroup(
+																inOutPnlLayout
+																		.createSequentialGroup()
+																		.addComponent(
+																				outDirLbl)
+																		.addGap(2,
+																				2,
+																				2)
+																		.addComponent(
+																				outDirTxt))
+														.addGroup(
+																inOutPnlLayout
+																		.createSequentialGroup()
+																		.addComponent(
+																				inVtxLbl)
+																		.addGap(3,
+																				3,
+																				3)
+																		.addComponent(
+																				inVtxTxt,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				438,
+																				javax.swing.GroupLayout.PREFERRED_SIZE))
+														.addGroup(
+																inOutPnlLayout
+																		.createSequentialGroup()
+																		.addComponent(
+																				inEdgLbl)
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addComponent(
+																				inEdgTxt)))
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												inOutPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addComponent(inVtxBtn)
+														.addComponent(inEdgBtn)
+														.addComponent(outDirBtn))));
+		inOutPnlLayout
+				.setVerticalGroup(inOutPnlLayout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								inOutPnlLayout
+										.createSequentialGroup()
+										.addGroup(
+												inOutPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(inVtxLbl)
+														.addComponent(
+																inVtxTxt,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(inVtxBtn))
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												inOutPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(inEdgLbl)
+														.addComponent(
+																inEdgTxt,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(inEdgBtn))
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												inOutPnlLayout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(outDirLbl)
+														.addComponent(
+																outDirTxt,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(outDirBtn))
+										.addGap(0, 0, Short.MAX_VALUE)));
+
+		jPanel4.setBorder(javax.swing.BorderFactory
+				.createTitledBorder("Run motif discovery"));
+
+		startBtn.setText("Start ");
+
+		reportArea.setColumns(20);
+		reportArea.setRows(5);
+		jScrollPane1.setViewportView(reportArea);
+
+		progressLbl.setText("");
+
+		javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(
+				jPanel4);
+		jPanel4.setLayout(jPanel4Layout);
+		jPanel4Layout
+				.setHorizontalGroup(jPanel4Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel4Layout
+										.createSequentialGroup()
+										.addGap(18, 18, 18)
+										.addComponent(
+												startBtn,
+												javax.swing.GroupLayout.PREFERRED_SIZE,
+												111,
+												javax.swing.GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												jPanel4Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addComponent(
+																progressBar,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																390,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(
+																progressLbl,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																331,
+																javax.swing.GroupLayout.PREFERRED_SIZE))
+										.addContainerGap(77, Short.MAX_VALUE))
+						.addComponent(jScrollPane1,
+								javax.swing.GroupLayout.Alignment.TRAILING));
+		jPanel4Layout
+				.setVerticalGroup(jPanel4Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel4Layout
+										.createSequentialGroup()
+										.addGroup(
+												jPanel4Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addGroup(
+																jPanel4Layout
+																		.createSequentialGroup()
+																		.addComponent(
+																				progressBar,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				javax.swing.GroupLayout.DEFAULT_SIZE,
+																				javax.swing.GroupLayout.PREFERRED_SIZE)
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addComponent(
+																				progressLbl))
+														.addGroup(
+																jPanel4Layout
+																		.createSequentialGroup()
+																		.addGap(6,
+																				6,
+																				6)
+																		.addComponent(
+																				startBtn)))
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addComponent(
+												jScrollPane1,
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												272, Short.MAX_VALUE)));
+
+		closeBtn.setText("Close");
+
+		helpBtn.setText("Help");
+
+		javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(
+				jPanel2);
+		jPanel2.setLayout(jPanel2Layout);
+		jPanel2Layout
+				.setHorizontalGroup(jPanel2Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel2Layout
+										.createSequentialGroup()
+										.addGroup(
+												jPanel2Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.LEADING)
+														.addComponent(
+																jPanel3,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																Short.MAX_VALUE)
+														.addComponent(
+																inOutPnl,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																Short.MAX_VALUE)
+														.addComponent(
+																jPanel4,
+																javax.swing.GroupLayout.Alignment.TRAILING,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																Short.MAX_VALUE)
+														.addGroup(
+																javax.swing.GroupLayout.Alignment.TRAILING,
+																jPanel2Layout
+																		.createSequentialGroup()
+																		.addGap(0,
+																				0,
+																				Short.MAX_VALUE)
+																		.addComponent(
+																				helpBtn,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				94,
+																				javax.swing.GroupLayout.PREFERRED_SIZE)
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addComponent(
+																				closeBtn,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				97,
+																				javax.swing.GroupLayout.PREFERRED_SIZE)))
+										.addContainerGap()));
+		jPanel2Layout
+				.setVerticalGroup(jPanel2Layout
+						.createParallelGroup(
+								javax.swing.GroupLayout.Alignment.LEADING)
+						.addGroup(
+								jPanel2Layout
+										.createSequentialGroup()
+										.addComponent(
+												jPanel3,
+												javax.swing.GroupLayout.PREFERRED_SIZE,
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												javax.swing.GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addComponent(
+												inOutPnl,
+												javax.swing.GroupLayout.PREFERRED_SIZE,
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												javax.swing.GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addComponent(
+												jPanel4,
+												javax.swing.GroupLayout.PREFERRED_SIZE,
+												javax.swing.GroupLayout.DEFAULT_SIZE,
+												javax.swing.GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(
+												javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addGroup(
+												jPanel2Layout
+														.createParallelGroup(
+																javax.swing.GroupLayout.Alignment.BASELINE)
+														.addComponent(closeBtn)
+														.addComponent(helpBtn))
+										.addGap(0, 0, Short.MAX_VALUE)));
+
+		mainSplitPnl.setLeftComponent(jPanel2);
+
+		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(
+				getContentPane());
+		getContentPane().setLayout(layout);
+		layout.setHorizontalGroup(layout.createParallelGroup(
+				javax.swing.GroupLayout.Alignment.LEADING).addComponent(
+				mainSplitPnl, javax.swing.GroupLayout.DEFAULT_SIZE, 1021,
+				Short.MAX_VALUE));
+		layout.setVerticalGroup(layout.createParallelGroup(
+				javax.swing.GroupLayout.Alignment.LEADING).addComponent(
+				mainSplitPnl, javax.swing.GroupLayout.DEFAULT_SIZE, 669,
+				Short.MAX_VALUE));
+
+		pack();
+	}// </editor-fold>
+
+	/**
+	 * @param args
+	 *            the command line arguments
+	 */
+	public static void main(String args[]) {
+		/* Set the Nimbus look and feel */
+		// <editor-fold defaultstate="collapsed"
+		// desc=" Look and feel setting code (optional) ">
+		/*
+		 * If Nimbus (introduced in Java SE 6) is not available, stay with the
+		 * default look and feel. For details see
+		 * http://download.oracle.com/javase
+		 * /tutorial/uiswing/lookandfeel/plaf.html
+		 */
+		try {
+			for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager
+					.getInstalledLookAndFeels()) {
+				if ("Nimbus".equals(info.getName())) {
+					javax.swing.UIManager.setLookAndFeel(info.getClassName());
+					break;
+				}
+			}
+		} catch (ClassNotFoundException ex) {
+			java.util.logging.Logger.getLogger(
+					StartWarswapSoftApp.class.getName()).log(
+					java.util.logging.Level.SEVERE, null, ex);
+		} catch (InstantiationException ex) {
+			java.util.logging.Logger.getLogger(
+					StartWarswapSoftApp.class.getName()).log(
+					java.util.logging.Level.SEVERE, null, ex);
+		} catch (IllegalAccessException ex) {
+			java.util.logging.Logger.getLogger(
+					StartWarswapSoftApp.class.getName()).log(
+					java.util.logging.Level.SEVERE, null, ex);
+		} catch (javax.swing.UnsupportedLookAndFeelException ex) {
+			java.util.logging.Logger.getLogger(
+					StartWarswapSoftApp.class.getName()).log(
+					java.util.logging.Level.SEVERE, null, ex);
+		}
+		// </editor-fold>
+
+		/* Create and display the form */
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				new StartWarswapSoftApp().setVisible(true);
+			}
+		});
+	}
+
+	// Variables declaration - do not modify
+	private javax.swing.JButton TFBtn;
+	private javax.swing.JButton closeBtn;
+	private javax.swing.JPanel filterPnl;
+	private javax.swing.JButton geneBtn;
+	private javax.swing.JButton helpBtn;
+	private javax.swing.JButton inEdgBtn;
+	private javax.swing.JLabel inEdgLbl;
+	private javax.swing.JTextField inEdgTxt;
+	private javax.swing.JPanel inOutPnl;
+	private javax.swing.JButton inVtxBtn;
+	private javax.swing.JLabel inVtxLbl;
+	private javax.swing.JTextField inVtxTxt;
+	private javax.swing.JLabel jLabel1;
+	private javax.swing.JLabel jLabel2;
+	private javax.swing.JLabel jLabel3;
+	private javax.swing.JLabel jLabel4;
+	private javax.swing.JPanel jPanel1;
+	private javax.swing.JPanel jPanel2;
+	private javax.swing.JPanel jPanel3;
+	private javax.swing.JPanel jPanel4;
+	private javax.swing.JProgressBar progressBar;
+	private javax.swing.JScrollPane jScrollPane1;
+	private javax.swing.JSplitPane mainSplitPnl;
+	private javax.swing.JButton mirBtn;
+	private javax.swing.JComboBox motifSizeCombo;
+	private javax.swing.JLabel motifSizeLbl;
+	private javax.swing.JButton outDirBtn;
+	private javax.swing.JLabel outDirLbl;
+	private javax.swing.JTextField outDirTxt;
+	private javax.swing.JLabel progressLbl;
+	private javax.swing.JCheckBox pvalCheck;
+	private javax.swing.JTextField pvalTxt;
+	private javax.swing.JLabel randNetLbl;
+	private javax.swing.JTextField randNetTxt;
+	private javax.swing.JButton reloadBtn;
+	private javax.swing.JTextArea reportArea;
+	private javax.swing.JSplitPane resSplitPnl;
+	private javax.swing.JScrollPane resultScrPnl;
+	private javax.swing.JButton saveHtmBtn;
+	private javax.swing.JCheckBox selfLoopCheck;
+	private javax.swing.JButton sloopBtn;
+	private javax.swing.JButton startBtn;
+	private javax.swing.JCheckBox zscoreCheck;
+	private javax.swing.JTextField zscoreTxt;
+
+	// End of variables declaration
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		if ("progress" == evt.getPropertyName()) {
+			int progress = (Integer) evt.getNewValue();
+			progressBar.setValue(progress);
+		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if (e.getActionCommand().equalsIgnoreCase("start")) {
+			String eFileIn = inEdgTxt.getText();
+			if (eFileIn == null || eFileIn.equalsIgnoreCase("")) {
+				JOptionPane.showMessageDialog(null,
+						"Edge input file is empty!");
+				return;
+			}
+			String vFileIn = inVtxTxt.getText();
+			if (vFileIn == null || vFileIn.equalsIgnoreCase("")) {
+				JOptionPane.showMessageDialog(null,
+						"Vertex input file is empty!");
+				return;
+			}
+			if (eFileIn.equalsIgnoreCase(vFileIn)) {
+				JOptionPane.showMessageDialog(StartWarswapSoftApp.this,
+						"Edge and Vertex files are the same!");
+				return;
+			}
+			if (!Utils.isNumeric(randNetTxt.getText())) {
+				JOptionPane.showMessageDialog(StartWarswapSoftApp.this, "Random Number is not Numeric!!");
+				return;
+			}
+			if (outDirTxt.getText() == null || outDirTxt.getText().equalsIgnoreCase("")) {
+				JOptionPane.showMessageDialog(StartWarswapSoftApp.this, "Error! Outpit path is empty!!");
+				return;
+			}
+			if (new File(outDirTxt.getText()).exists()) {
+				int response = JOptionPane.showConfirmDialog(StartWarswapSoftApp.this,
+						"Warning! File exists! Do you want to overwrite it? ", "Warning", 
+						JOptionPane.YES_NO_OPTION,
+						JOptionPane.QUESTION_MESSAGE);
+				if (response == 1)
+					return;
+			}
+			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+			deactivateUIItems();
+			try {
+				task = new Task();
+				task.addPropertyChangeListener(this);
+				task.execute();
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				task.cancel(true);
+			}
 		}
 
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			// TODO Auto-generated method stub
-			
-		}
+	}
 
 }
