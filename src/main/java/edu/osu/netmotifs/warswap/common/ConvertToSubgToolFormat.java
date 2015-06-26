@@ -1,29 +1,52 @@
-/** Copyright (C) 2015 
- * @author Mitra Ansariola 
- * 
- * This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+/**
+Copyright (c) 2015 Oregon State University
+All Rights Reserved.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
-    Contact info:  megrawm@science.oregonstate.edu
+AUTHOR
+  Mitra Ansariola
+  
+  Department of Botany and Plant Pathology 
+  2082 Cordley Hall
+  Oregon State University
+  Corvallis, OR 97331-2902
+  
+  E-mail:  megrawm@science.oregonstate.edu 
+  http://bpp.oregonstate.edu/
 
+====================================================================
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for educational, research and non-profit purposes, without fee,
+and without a written agreement is hereby granted, provided that the above
+copyright notice, this paragraph and the following three paragraphs appear in
+all copies. 
+
+Permission to incorporate this software into commercial products may be obtained
+by contacting Oregon State University Office of Technology Transfer.
+
+This software program and documentation are copyrighted by Oregon State
+University. The software program and documentation are supplied "as is", without
+any accompanying services from Oregon State University. OSU does not warrant
+that the operation of the program will be uninterrupted or error-free. The
+end-user understands that the program was developed for research purposes and is
+advised not to rely exclusively on the program for any reason. 
+
+IN NO EVENT SHALL OREGON STATE UNIVERSITY BE LIABLE TO ANY PARTY FOR DIRECT,
+INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
+ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF OREGON
+STATE UNIVERSITY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. OREGON STATE
+UNIVERSITY SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+AND ANY STATUTORY WARRANTY OF NON-INFRINGEMENT. THE SOFTWARE PROVIDED HEREUNDER
+IS ON AN "AS IS" BASIS, AND OREGON STATE UNIVERSITY HAS NO OBLIGATIONS TO
+PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS. 
  */
-
 package edu.osu.netmotifs.warswap.common;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,27 +60,32 @@ import edu.osu.netmotifs.warswap.common.exception.VertexFileFormatException;
 
 
 /**
- * Convert igraph edges/vertices format to subgraph enumerator tool format Edges: V1 V2 Vertices:
- * V1 color
+ * Convert warswap's edges/vertices format to subgraph enumerator acceptable format:
+ 
+ V1    V2    V1_color     V2_color
  */
 public class ConvertToSubgToolFormat {
 
-	private HashMap<String, String> vertexColorHash;
-	private HashMap<String, String> selfloopVerticesHash;
-	private HashMap<String, Integer> colorHash = new HashMap<String, Integer>();
-//	private int colorNum = 0;
-	
-	public ConvertToSubgToolFormat() {
-		vertexColorHash = new HashMap<String, String>();
-		selfloopVerticesHash = new HashMap<String, String>();
-	}
+	private static HashMap<String, String> vertexColorHash = new HashMap<String, String>();;
+	private static HashMap<String, Integer> colorHash = new HashMap<String, Integer>();
 	
 
-	public void clearVerHash() {
+	public static void clearVertexHash() {
 		vertexColorHash.clear();
 	}
 	
-	public void readVertices(String vertexFileIn) throws VertexFileFormatException {
+	/**
+	 * This method reads a file in the following format from user input files:
+	 for vertices user input is in the following format: 
+	            V1   TF/MIR/GENE
+	 * This method should convert above to the following format which is readable 
+	 by warswap core:
+	            V1   0/1/2
+	 (slashes here mean OR) 
+	 * @author mitra
+	 */
+	public static void readVertices(String vertexFileIn) throws VertexFileFormatException {
+		clearVertexHash();
 		if (!vertexColorHash.isEmpty())
 			return;
 		try {
@@ -70,9 +98,6 @@ public class ConvertToSubgToolFormat {
 				if (line.startsWith("name"))
 					continue;
 				String vColor = line.split("\t")[1];
-//				Integer colorCode = colorHash.get(vColor);
-//				if (colorCode == null)
-//					colorCode = colorNum++;
 				colorHash.put(vColor, Integer.valueOf(vColor));
 				vertexColorHash.put(line.split("\t")[0], vColor);
 			}
@@ -85,6 +110,7 @@ public class ConvertToSubgToolFormat {
 
 	}
 
+	@Deprecated
 	public void convert(String edgeFileIn, String edgeFileOut, String vertexFileIn) throws VertexFileFormatException {
 		readVertices(vertexFileIn);
 		Map<String, String> sortedEdgeMap = new TreeMap<String, String>();
@@ -99,7 +125,6 @@ public class ConvertToSubgToolFormat {
 					if (!CONF.selfLoops)
 						continue;
 					else {
-//						selfloopVerticesHash.put(edgeParts[0], "1");
 						int nOfColors = colorHash.keySet().size();
 						vertexColorHash.put(edgeParts[0], String.valueOf(nOfColors));
 					}
@@ -126,7 +151,15 @@ public class ConvertToSubgToolFormat {
 		}
 	}
 	
-	public void convertForWarswap(String edgeFileIn, String edgeFileOut, String vertexFileIn) throws Exception {
+	/**
+	 * @author mitra 
+	 * This method reads edges and vertices from warswap format:
+	   			V1      V2             (for edges)
+	   			V1      0/1/2		   (for vertices)
+	 and convert it to a single file that has following format:
+	  			V1      V2      V1_color        V2_color
+	 */
+	public static void convertToEdgVtxColorFileFormat(String edgeFileIn, String edgeVtxColorFile, String vertexFileIn) throws Exception {
 		readVertices(vertexFileIn);
 		Map<String, String> sortedEdgeMap = new TreeMap<String, String>();
 		try {
@@ -145,7 +178,7 @@ public class ConvertToSubgToolFormat {
 			bufferedReader.close();
 			inputStream.close();
 			BufferedWriter out = new BufferedWriter(new FileWriter(new File(
-					edgeFileOut)));
+					edgeVtxColorFile)));
 			Iterator<String> iterator = sortedEdgeMap.keySet().iterator();
 			while (iterator.hasNext()) {
 				String keyStr = (String) iterator.next();

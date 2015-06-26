@@ -117,7 +117,7 @@ public class JWarswapCluster {
 		fanFormatEdgeOut = edgeFileIn + ".fan.txt";
 		try {
 			Utils.convertToNumericalVColor(vtxFileIn, numericalVertexFile);
-			new ConvertToSubgToolFormat().convertForWarswap(edgeFileIn, fanFormatEdgeOut, numericalVertexFile);
+			new ConvertToSubgToolFormat().convertToEdgVtxColorFileFormat(edgeFileIn, fanFormatEdgeOut, numericalVertexFile);
 		} catch (Exception e1) {
 			logger.error(Arrays.toString(e1.getStackTrace()));
 		}
@@ -194,7 +194,7 @@ public class JWarswapCluster {
 			String fnmOrigOUtFile = properties.getProperty(NETWORK_NAME_KEY)
 					+ FNM_EDGE_ORIG_SUFFIX + FNM_OUT_SUFFIX;
 			new ExtractSignificanceMotifs(
-					Integer.valueOf(properties.get(CONF.MOTIF_SIZE_KEY).toString()), properties.getProperty(FN_OUTDIR_KEY),
+					Integer.valueOf(properties.get(CONF.MOTIF_SIZE_KEY).toString()), properties.getProperty(SUBENUM_OUTDIR_KEY),
 					fnmOrigOUtFile, motifsOutFile, CONF.FN_OUT_EXTENSION).extractSubGraphsInfo();
 			cleanup();
 			session.exit();

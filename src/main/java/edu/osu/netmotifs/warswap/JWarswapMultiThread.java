@@ -62,8 +62,6 @@ import edu.osu.netmotifs.warswap.significance.ExtractSignificanceMotifs;
 public class JWarswapMultiThread implements Callable<String> {
 	private static Logger logger = Logger.getLogger(JWarswapMultiThread.class);
 
-	// private static int cores = 4;
-	// TODO read this from file
 	private int noOfIterations = 100;
 	private int finishedJobs = 0;
 	private String outDir;
@@ -73,7 +71,7 @@ public class JWarswapMultiThread implements Callable<String> {
 	private String status = CONF.RUNNING_STATUS;
 	private String errorMsg = "";
 	private String numericalVertexFile;
-	private String fanFormatEdgeOut;
+	private String edgeVtxColorFile;
 
 
 	public void setSelfLoops(boolean selfLoops) {
@@ -100,20 +98,21 @@ public class JWarswapMultiThread implements Callable<String> {
 		this.noOfIterations = noOfIterations;
 	}
 
-	public JWarswapMultiThread(String eFileIn, String vFileIn, String outBase,
-			String netName, int motifSize) throws Exception {
+	public JWarswapMultiThread(String inEdgFile, String vFinVtxFile, String outBase,
+			String networkName, int motifSize) throws Exception {
 		try {
 			outDir = outBase;
+			this.motifSize = motifSize;
 			setRunningMode(PC_MODE);
-			numericalVertexFile = vFileIn + ".txt";
-			fanFormatEdgeOut = eFileIn + ".fan.txt";
-			Utils.convertToNumericalVColor(vFileIn, numericalVertexFile);
-			new ConvertToSubgToolFormat().convertForWarswap(eFileIn, fanFormatEdgeOut, numericalVertexFile);
-			if (!createDirectories(eFileIn, numericalVertexFile, outBase, netName, fanFormatEdgeOut, motifSize))
+			numericalVertexFile = vFinVtxFile + ".txt";
+			edgeVtxColorFile = inEdgFile + ".all.txt";
+			Utils.convertToNumericalVColor(vFinVtxFile, numericalVertexFile);
+			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(inEdgFile, edgeVtxColorFile, numericalVertexFile);
+			if (!createDirectories(inEdgFile, numericalVertexFile, outBase, networkName, edgeVtxColorFile, motifSize))
 				return;
 		} catch (Exception e) {
-			 logger.error(Arrays.toString(e.getStackTrace()));
-			 cleanup();
+			 logger.error(e.getMessage() + "\n" + java.util.Arrays.toString(e.getStackTrace()));
+//			 cleanup();
 			 throw e;
 		}
 	}
@@ -139,7 +138,7 @@ public class JWarswapMultiThread implements Callable<String> {
 				finishedJobs++;
 			} 
 			if (FAILE_STATUS.equalsIgnoreCase(status)) {
-				cleanup();
+//				cleanup();
 				return errorMsg;
 			}
 			long endTime = System.currentTimeMillis();
@@ -148,22 +147,22 @@ public class JWarswapMultiThread implements Callable<String> {
 			String fnmOrigOUtFile = properties.getProperty(NETWORK_NAME_KEY)
 					+ FNM_EDGE_ORIG_SUFFIX + FNM_OUT_SUFFIX;
 			new ExtractSignificanceMotifs(
-					Integer.valueOf(properties.get(CONF.MOTIF_SIZE_KEY).toString()), properties.getProperty(FN_OUTDIR_KEY),
+					Integer.valueOf(properties.get(CONF.MOTIF_SIZE_KEY).toString()), properties.getProperty(SUBENUM_OUTDIR_KEY),
 					fnmOrigOUtFile, signOutFile, CONF.FN_OUT_EXTENSION).extractSubGraphsInfo();
 			done = true;
-			cleanup();
+//			cleanup();
 		} catch (Exception e) {
 			logger.error(e);
-			cleanup();
+//			cleanup();
 		} catch (Throwable e) {
 			logger.error(e);
-			cleanup();
+//			cleanup();
 		} 
 		return "";
 	}
 
 	private void cleanup() {
-		File file = new File(fanFormatEdgeOut);
+		File file = new File(edgeVtxColorFile);
 		if (file.isFile())
 			file.delete();
 		file = new File(numericalVertexFile);

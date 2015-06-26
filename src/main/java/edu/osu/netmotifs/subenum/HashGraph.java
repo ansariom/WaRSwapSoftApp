@@ -24,6 +24,8 @@ package edu.osu.netmotifs.subenum;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.google.common.primitives.Ints;
 
+import edu.osu.netmotifs.warswap.common.CONF;
+
 import java.io.*;
 import java.util.*;
 
@@ -40,9 +42,10 @@ public class HashGraph implements Graph {
     public List<Adjacency> table = new ArrayList<Adjacency>();
 //    public Set<Integer> vertices = new HashSet<Integer>();
     private int edgeCount = 0;
+    private boolean hasSelfLoop = false;
     
  // ADDED by Mitra
-    private static HashMap<Integer, Byte> vColorHash = new HashMap<Integer, Byte>();
+    private HashMap<Integer, Byte> vColorHash = new HashMap<Integer, Byte>();
 
     public static HashGraph readGraph(Reader reader) throws IOException {
         BufferedReader br = new BufferedReader(reader);
@@ -144,10 +147,10 @@ public class HashGraph implements Graph {
     private void addEdge(int source, int dest, byte color1, byte color2) {
     	// ADDED by Mitra : not allowed to set self-loop edges in this way
     	// Instead we  assign different colors to self loops
-//    	if (source == dest) {
-//    		addVertex(source, Byte.valueOf("3"));
-//    		return;
-//    	}
+    	if (source == dest && CONF.selfLoops) {
+    		addVertex(source, Byte.valueOf("3"));
+    		return;
+    	}
     	
     	// Changed : store to vColorHash instead of vertices Hashset
         if (!containsVertex(source))
@@ -284,4 +287,6 @@ public class HashGraph implements Graph {
         int[] allArr = new int[0];
         int[] outArr = new int[0];
     }
+
+    
 }

@@ -46,12 +46,11 @@ package edu.osu.netmotifs.warswap;
 
 import static edu.osu.netmotifs.warswap.common.CONF.DIR_SEP;
 import static edu.osu.netmotifs.warswap.common.CONF.EDGE_FILEIN_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.EDGE_VTX_COLOR_FILE_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.FNM_EDGE_ORIG_SUFFIX;
 import static edu.osu.netmotifs.warswap.common.CONF.FNM_EDGE_SUFFIX;
-import static edu.osu.netmotifs.warswap.common.CONF.FNM_FILEIN_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.FNM_OUT_SUFFIX;
 import static edu.osu.netmotifs.warswap.common.CONF.FN_EOUTDIR_KEY;
-import static edu.osu.netmotifs.warswap.common.CONF.FN_OUTDIR_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.GENE_Color;
 import static edu.osu.netmotifs.warswap.common.CONF.JGRAPH_SUFFIX;
 import static edu.osu.netmotifs.warswap.common.CONF.LOG_SUFFIX;
@@ -60,6 +59,7 @@ import static edu.osu.netmotifs.warswap.common.CONF.MOTIF_SIZE_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.NETWORK_NAME_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.OS;
 import static edu.osu.netmotifs.warswap.common.CONF.PREFIX_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.SUBENUM_OUTDIR_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.TF_Color;
 import static edu.osu.netmotifs.warswap.common.CONF.VTX_FILEIN_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.WIN_OS;
@@ -75,8 +75,8 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
+import edu.osu.netmotifs.subenum.CallEnumerateSubGraphs;
 import edu.osu.netmotifs.warswap.common.CONF;
-import edu.osu.netmotifs.warswap.common.CallSubgCount;
 import edu.osu.netmotifs.warswap.common.ConvertToSubgToolFormat;
 import edu.osu.netmotifs.warswap.common.LoadLogger;
 import edu.osu.netmotifs.warswap.common.ThreadLogger;
@@ -85,8 +85,8 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 
 	private int jobNo = 1;
 	private String edgeOutFile;
-	private String fnmEdgeOutFile;
-	private String fnmOutFile;
+	private String edgeVtxColorFile;
+	private String subenumResultFile;
 	private String logFile;
 	private Logger logger;
 	int motifSize = 3;
@@ -113,17 +113,17 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 			motifSize = Integer.valueOf(properties.getProperty(MOTIF_SIZE_KEY));
 	
 			if (jobNo == 0) {
-				fnmEdgeOutFile = properties.getProperty(FN_EOUTDIR_KEY)
+				edgeVtxColorFile = properties.getProperty(FN_EOUTDIR_KEY)
 						+ DIR_SEP + properties.getProperty(NETWORK_NAME_KEY)
 						+ FNM_EDGE_ORIG_SUFFIX + FNM_EDGE_SUFFIX;
-				fnmOutFile = properties.getProperty(FN_OUTDIR_KEY) + DIR_SEP
+				subenumResultFile = properties.getProperty(SUBENUM_OUTDIR_KEY) + DIR_SEP
 						+ properties.getProperty(NETWORK_NAME_KEY)
 						+ FNM_EDGE_ORIG_SUFFIX + FNM_OUT_SUFFIX;
 			} else {
-				fnmEdgeOutFile = properties.getProperty(FN_EOUTDIR_KEY)
+				edgeVtxColorFile = properties.getProperty(FN_EOUTDIR_KEY)
 						+ DIR_SEP + properties.getProperty(PREFIX_KEY) + jobNo
 						+ FNM_EDGE_SUFFIX;
-				fnmOutFile = properties.getProperty(FN_OUTDIR_KEY) + DIR_SEP
+				subenumResultFile = properties.getProperty(SUBENUM_OUTDIR_KEY) + DIR_SEP
 						+ properties.getProperty(PREFIX_KEY) + jobNo
 						+ FNM_OUT_SUFFIX;
 			}
@@ -171,7 +171,7 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 			graphDAO.createTable(tableName);
 			DrawRandGraphWithSwaps drawRandGraphWithSwaps = new DrawRandGraphWithSwaps(
 					logger, properties.getProperty(VTX_FILEIN_KEY), edgeOutFile, tableName);
-			drawRandGraphWithSwaps.loadGraph(properties.getProperty(FNM_FILEIN_KEY));
+			drawRandGraphWithSwaps.loadGraph(properties.getProperty(EDGE_VTX_COLOR_FILE_KEY));
 //			System.out.println("ReadFile: " + (System.currentTimeMillis() - t1));
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, TF_Color);
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, MIR_Color);
@@ -193,14 +193,14 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 
 	private void runSubgCount() throws Exception {
 		if (jobNo == 0) {
-			new ConvertToSubgToolFormat().convert(properties.getProperty(EDGE_FILEIN_KEY), fnmEdgeOutFile, properties.getProperty(VTX_FILEIN_KEY));
+			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(properties.getProperty(EDGE_FILEIN_KEY), edgeVtxColorFile, properties.getProperty(VTX_FILEIN_KEY));
 		} else {
-			new ConvertToSubgToolFormat().convert(edgeOutFile, fnmEdgeOutFile, properties.getProperty(VTX_FILEIN_KEY));
+			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(edgeOutFile, edgeVtxColorFile, properties.getProperty(VTX_FILEIN_KEY));
 		}
-
-		long t2 = System.currentTimeMillis();
-		new CallSubgCount(fnmEdgeOutFile, fnmOutFile, logger, motifSize).start();
-//		System.out.println("FN-RUN -> " + jobNo + " " + (System.currentTimeMillis() - t2));
+		
+		// Call subenum to enumerate subgraphs and store results
+		new CallEnumerateSubGraphs(motifSize, edgeVtxColorFile, subenumResultFile, 1);
+//		new CallSubgCount(edgeVtxColorFile, subenumResultFile, logger, motifSize).start();
 	}
 
 

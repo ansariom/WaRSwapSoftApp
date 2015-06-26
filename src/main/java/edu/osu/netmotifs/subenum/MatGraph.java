@@ -25,6 +25,8 @@ package edu.osu.netmotifs.subenum;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.google.common.primitives.Ints;
 
+import edu.osu.netmotifs.warswap.common.CONF;
+
 import java.io.*;
 import java.util.*;
 
@@ -41,9 +43,10 @@ import java.util.*;
 public class MatGraph implements Graph {
     public List<Adjacency> table = new ArrayList<Adjacency>();
     private int edgeCount = 0;
+    private boolean hasSelfLoop = false;
 
     // ADDED by Mitra
-    private static HashMap<Integer, Byte> vColorHash = new HashMap<Integer, Byte>();
+    private HashMap<Integer, Byte> vColorHash = new HashMap<Integer, Byte>();
     public byte[] adjArr;
 
     /**
@@ -167,7 +170,7 @@ public class MatGraph implements Graph {
     }
 
     private void addEdge(int source, int dest, byte color1, byte color2) {
-    	if (dest == source) {
+    	if (dest == source && CONF.selfLoops) {
     		addVertex(source, Byte.valueOf("3"));
     		return;
     	}
