@@ -79,26 +79,21 @@ public class DrawRandGraphWithSwaps {
 	// private static logger logger = Loadlogger.rlogger;
 
 	private double factor = 6.0;
-//	private StringBuffer outBuffer = new StringBuffer();
 	private List<String> outBuffer = new ArrayList<String>();
 	private String edgeFileOut;
 	private String vertexFileIn;
 	private int seed;
-	// private WarswapLogger1 logger;
 	private Logger logger;
 	private GraphDAO graphDAO;
 	private String tableName;
 	private byte color1, color2;
-//	private List<Vertex> srcsTargetingSomething  = new ArrayList<Vertex>();
 	private List<String> addedEdgesList = new ArrayList<String>();
 	private int swapCount = 0;
 	HashMap<Integer, List<Integer>> graphSrcHash = new HashMap<Integer, List<Integer>>();
 	HashMap<Integer, List<Integer>> graphTgtHash = new HashMap<Integer, List<Integer>>();
-	HashMap<Integer, Vertex> srcVHash = new HashMap<Integer, Vertex>(); // key=index,
-	// value=vertex
+	HashMap<Integer, Vertex> srcVHash = new HashMap<Integer, Vertex>(); // key=index, value=vertex
 	HashMap<Integer, Vertex> tgtVHash = new HashMap<Integer, Vertex>();
-	HashMap<Integer, Integer> srcIndexHash = new HashMap<Integer, Integer>(); // key=label,
-	// value=index
+	HashMap<Integer, Integer> srcIndexHash = new HashMap<Integer, Integer>(); // key=label, value=index
 	HashMap<Integer, Integer> tgtIndexHash = new HashMap<Integer, Integer>();
 
 

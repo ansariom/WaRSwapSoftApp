@@ -44,14 +44,23 @@ PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 package edu.osu.netmotifs.warswap;
 
-import static edu.osu.netmotifs.warswap.common.CONF.*;
+import static edu.osu.netmotifs.warswap.common.CONF.FAILE_STATUS;
+import static edu.osu.netmotifs.warswap.common.CONF.FNM_EDGE_ORIG_SUFFIX;
+import static edu.osu.netmotifs.warswap.common.CONF.FNM_OUT_SUFFIX;
+import static edu.osu.netmotifs.warswap.common.CONF.NETWORK_NAME_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.PC_MODE;
+import static edu.osu.netmotifs.warswap.common.CONF.SUBENUM_OUTDIR_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.createDirectories;
+import static edu.osu.netmotifs.warswap.common.CONF.pool;
+import static edu.osu.netmotifs.warswap.common.CONF.poolExecutor;
+import static edu.osu.netmotifs.warswap.common.CONF.properties;
+import static edu.osu.netmotifs.warswap.common.CONF.setRunningMode;
 
 import java.io.File;
 import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
-import cern.colt.Arrays;
 import edu.osu.netmotifs.warswap.common.CONF;
 import edu.osu.netmotifs.warswap.common.ConvertToSubgToolFormat;
 import edu.osu.netmotifs.warswap.common.CreateDirectory;
@@ -64,9 +73,7 @@ public class JWarswapMultiThread implements Callable<String> {
 
 	private int noOfIterations = 100;
 	private int finishedJobs = 0;
-	private String outDir;
 	private String signOutFile;
-	private int motifSize;
 	private boolean done = false;
 	private String status = CONF.RUNNING_STATUS;
 	private String errorMsg = "";
@@ -86,10 +93,6 @@ public class JWarswapMultiThread implements Callable<String> {
 		this.signOutFile = signOutFile;
 	}
 
-	public void setMotifSize(int motifSize) {
-		this.motifSize = motifSize;
-	}
-
 	public int getFinishedJobs() {
 		return finishedJobs;
 	}
@@ -101,8 +104,6 @@ public class JWarswapMultiThread implements Callable<String> {
 	public JWarswapMultiThread(String inEdgFile, String vFinVtxFile, String outBase,
 			String networkName, int motifSize) throws Exception {
 		try {
-			outDir = outBase;
-			this.motifSize = motifSize;
 			setRunningMode(PC_MODE);
 			numericalVertexFile = vFinVtxFile + ".txt";
 			edgeVtxColorFile = inEdgFile + ".all.txt";
@@ -143,7 +144,6 @@ public class JWarswapMultiThread implements Callable<String> {
 			}
 			long endTime = System.currentTimeMillis();
 			logger.info("Randomization Finished in " + (endTime - startTime));
-//			System.out.println("all-> " + (endTime - startTime));
 			String fnmOrigOUtFile = properties.getProperty(NETWORK_NAME_KEY)
 					+ FNM_EDGE_ORIG_SUFFIX + FNM_OUT_SUFFIX;
 			new ExtractSignificanceMotifs(
@@ -190,8 +190,6 @@ public class JWarswapMultiThread implements Callable<String> {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		// new JWarswapMultiThread(args[0], args[1], args[2], args[3])
-		// .startRunning();
 	}
 
 }

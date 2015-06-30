@@ -99,9 +99,9 @@ public class SignatureRepo {
             labelMap.add(label, entry.getCount());
         }
 
-        if (isVerbose()) {
-            System.out.printf("Added %,d new signatures. LabelMap size:%,d\n", multiset.elementSet().size(), size());
-        }
+//        if (isVerbose()) {
+//            System.out.printf("Added %,d new signatures. LabelMap size:%,d\n", multiset.elementSet().size(), size());
+//        }
         if (size() > capacity)
             try {
                 flush();
@@ -127,9 +127,9 @@ public class SignatureRepo {
             }
         }
 
-        if (isVerbose()) {
-            System.out.printf("Added %,d new signatures. LabelMap size:%,d\n", longMap.size(), size());
-        }
+//        if (isVerbose()) {
+//            System.out.printf("Added %,d new signatures. LabelMap size:%,d\n", longMap.size(), size());
+//        }
         if (size() > capacity)
             try {
                 flush();

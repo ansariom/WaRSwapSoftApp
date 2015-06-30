@@ -127,7 +127,6 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 						+ properties.getProperty(PREFIX_KEY) + jobNo
 						+ FNM_OUT_SUFFIX;
 			}
-//			System.out.println(CONF.getRunningMode() + "------------");
 			if (CONF.getRunningMode().equalsIgnoreCase(CONF.CLUSTER_MODE)) {
 				LoadLogger.setLogger1(logFile, "DEBUG", null);
 				logger = LoadLogger.rLogger;
@@ -172,7 +171,6 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 			DrawRandGraphWithSwaps drawRandGraphWithSwaps = new DrawRandGraphWithSwaps(
 					logger, properties.getProperty(VTX_FILEIN_KEY), edgeOutFile, tableName);
 			drawRandGraphWithSwaps.loadGraph(properties.getProperty(EDGE_VTX_COLOR_FILE_KEY));
-//			System.out.println("ReadFile: " + (System.currentTimeMillis() - t1));
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, TF_Color);
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, MIR_Color);
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, GENE_Color);
@@ -186,7 +184,7 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 			e.printStackTrace();
 			throw e;
 		} finally {
-			logger.debug("WarSwap Finished in (millisecs) : "
+			logger.info("WarSwap Finished in (millisecs) : "
 					+ (System.currentTimeMillis() - t1));
 		}
 	}
@@ -199,8 +197,7 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 		}
 		
 		// Call subenum to enumerate subgraphs and store results
-		new CallEnumerateSubGraphs(motifSize, edgeVtxColorFile, subenumResultFile, 1);
-//		new CallSubgCount(edgeVtxColorFile, subenumResultFile, logger, motifSize).start();
+		new CallEnumerateSubGraphs(motifSize, edgeVtxColorFile, subenumResultFile, 2);
 	}
 
 

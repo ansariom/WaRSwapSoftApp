@@ -103,7 +103,7 @@ public class SMPEnumerator {
         final ConcurrentLinkedQueue<SMPState> bq = new ConcurrentLinkedQueue<SMPState>(sorted);
         sorted.clear();
 
-        System.out.printf("Initial states: %,d\n", bq.size());
+//        System.out.printf("Initial states: %,d\n", bq.size());
 
         final SignatureRepo signatureRepo = new SignatureRepo(writer);
         signatureRepo.motifSize = motifSize;
@@ -195,7 +195,7 @@ public class SMPEnumerator {
                     signatureRepo.add(luniqueMap, motifSize);
                     uniqueMap.clear();
                     luniqueMap.clear();
-                    System.out.printf("Thread %d finished. %d threads remaining.\n", thread_id, live_threads.decrementAndGet());
+//                    System.out.printf("Thread %d finished. %d threads remaining.\n", thread_id, live_threads.decrementAndGet());
                 }
             });
         }

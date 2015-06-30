@@ -54,10 +54,6 @@ public class CallEnumerateSubGraphs {
 
             SMPEnumerator.setMaxCount(Long.MAX_VALUE);
 
-            System.out.printf("Unique map size: %,d.\n", SMPEnumerator.getUniqueCap());
-
-            System.out.printf("Label map size: %,d.\n", SignatureRepo.getCapacity());
-
             SMPEnumerator.setVerbose(true);
 
             logForOutput += "Graph's input file: " + inputGraphPath + " \nSubgraph size:" + motifSize + "\n";
