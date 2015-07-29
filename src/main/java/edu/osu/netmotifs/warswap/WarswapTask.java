@@ -91,28 +91,25 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 	private Logger logger;
 	int motifSize = 3;
 	private String loggerName = "JOB";
+	private int numberOfThreads = 1;
+	private long MEMORY_LIMIT = 0;
 
-	public static void main(String[] args) {
-		WarswapTask task = new WarswapTask(Integer.valueOf(args[0]));
-		try {
-			System.out.println(task.call());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 
 	public WarswapTask(int jobNo) {
 		try {
 			CONF.loadProps();
-//			this.loggerName = loggerName + jobNo + "T";
-			this.jobNo = jobNo;
+			if (CONF.getRunningMode().equalsIgnoreCase(CONF.CLUSTER_MODE))
+				this.jobNo = jobNo - 1;
+			else
+				this.jobNo = jobNo;
+			
 			edgeOutFile = properties.getProperty(WR_EOUTDIR_KEY) + DIR_SEP
-					+ properties.getProperty(PREFIX_KEY) + jobNo + JGRAPH_SUFFIX;
+					+ properties.getProperty(PREFIX_KEY) + this.jobNo + JGRAPH_SUFFIX;
 			logFile = properties.getProperty(WR_OUTDIR_KEY) + DIR_SEP
-					+ properties.getProperty(PREFIX_KEY) + jobNo + LOG_SUFFIX;
+					+ properties.getProperty(PREFIX_KEY) + this.jobNo + LOG_SUFFIX;
 			motifSize = Integer.valueOf(properties.getProperty(MOTIF_SIZE_KEY));
 	
-			if (jobNo == 0) {
+			if (this.jobNo == 0) {
 				edgeVtxColorFile = properties.getProperty(FN_EOUTDIR_KEY)
 						+ DIR_SEP + properties.getProperty(NETWORK_NAME_KEY)
 						+ FNM_EDGE_ORIG_SUFFIX + FNM_EDGE_SUFFIX;
@@ -121,10 +118,10 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 						+ FNM_EDGE_ORIG_SUFFIX + FNM_OUT_SUFFIX;
 			} else {
 				edgeVtxColorFile = properties.getProperty(FN_EOUTDIR_KEY)
-						+ DIR_SEP + properties.getProperty(PREFIX_KEY) + jobNo
+						+ DIR_SEP + properties.getProperty(PREFIX_KEY) + this.jobNo
 						+ FNM_EDGE_SUFFIX;
 				subenumResultFile = properties.getProperty(SUBENUM_OUTDIR_KEY) + DIR_SEP
-						+ properties.getProperty(PREFIX_KEY) + jobNo
+						+ properties.getProperty(PREFIX_KEY) + this.jobNo
 						+ FNM_OUT_SUFFIX;
 			}
 			if (CONF.getRunningMode().equalsIgnoreCase(CONF.CLUSTER_MODE)) {
@@ -132,6 +129,16 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 				logger = LoadLogger.rLogger;
 			} else 
 				logger = ThreadLogger.getLogger(loggerName, "debug");
+			
+			if (CONF.getRunningMode().equalsIgnoreCase(CONF.CLUSTER_MODE)) 
+				numberOfThreads = 1;
+			else {
+				numberOfThreads = Runtime.getRuntime().availableProcessors();
+				if (numberOfThreads > 2 ) 
+					numberOfThreads /= 2;
+			}
+			
+			logger.info("Number of threads = " + numberOfThreads);
 		}catch(Throwable t) {
 			t.printStackTrace();
 		} 
@@ -184,21 +191,19 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 			e.printStackTrace();
 			throw e;
 		} finally {
-			logger.info("WarSwap Finished in (millisecs) : "
-					+ (System.currentTimeMillis() - t1));
+				logger.info("WarSwap Finished in (millisecs) : "
+						+ (System.currentTimeMillis() - t1));
+			}
 		}
-	}
-
-	private void runSubgCount() throws Exception {
-		if (jobNo == 0) {
-			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(properties.getProperty(EDGE_FILEIN_KEY), edgeVtxColorFile, properties.getProperty(VTX_FILEIN_KEY));
-		} else {
-			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(edgeOutFile, edgeVtxColorFile, properties.getProperty(VTX_FILEIN_KEY));
+	
+		private void runSubgCount() throws Exception {
+			if (jobNo == 0) {
+				ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(properties.getProperty(EDGE_FILEIN_KEY), edgeVtxColorFile, properties.getProperty(VTX_FILEIN_KEY));
+			} else {
+				ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(edgeOutFile, edgeVtxColorFile, properties.getProperty(VTX_FILEIN_KEY));
+			}
+			new CallEnumerateSubGraphs(motifSize, edgeVtxColorFile, subenumResultFile, numberOfThreads);
 		}
-		
-		// Call subenum to enumerate subgraphs and store results
-		new CallEnumerateSubGraphs(motifSize, edgeVtxColorFile, subenumResultFile, 2);
-	}
 
 
 	private void extractLogs() {
@@ -224,25 +229,13 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 		}
 	}
 
-	public String call_script() throws Exception {
+	public static void main(String[] args) {
+		WarswapTask task = new WarswapTask(Integer.valueOf(args[0]));
 		try {
-			Runtime runTime = Runtime.getRuntime();
-			String[] callJSStr = { "./callProgram.sh", String.valueOf(jobNo) };
-			Process process = runTime.exec(callJSStr);
-			InputStream inputStream = process.getInputStream();
-			BufferedReader bufferedReader = new BufferedReader(
-					new InputStreamReader(inputStream));
-			String line;
-			while ((line = bufferedReader.readLine()) != null) {
-				System.out.println(line);
-			}
-			process.waitFor();
-			// System.out.println("Exe CallJS " + jobNo + "  Finished .....");
-
+			System.out.println(task.call());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return String.valueOf(jobNo);
 	}
 
 }

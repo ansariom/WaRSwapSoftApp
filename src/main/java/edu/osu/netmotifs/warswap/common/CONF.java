@@ -45,8 +45,6 @@ package edu.osu.netmotifs.warswap.common;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -57,13 +55,6 @@ public class CONF implements Serializable {
 	/**
 	 * 
 	 */
-	private static CONF conf;
-
-	public static CONF getInstance() {
-		if (conf == null)
-			conf = new CONF();
-		return conf;
-	}
 
 	private static final long serialVersionUID = -1042536051405603347L;
 
@@ -134,6 +125,7 @@ public class CONF implements Serializable {
 	public static final String SUBENUM_OUTDIR_KEY = "subenumOutDir";
 	public static final String WR_EOUTDIR_KEY = "jgraphEdgeOutDir";
 	public static final String WR_OUTDIR_KEY = "jgraphOutDir";
+	public static final String SELFLOOP_KEY = "selfloop";
 	public static final String PREFIX_KEY = "prefix";
 	public static final String EDGE_VTX_COLOR_FILE_KEY = "edggVtxColorFileIn";
 	public static final String PROP_FILE_NAME = "config.properties";
@@ -160,13 +152,26 @@ public class CONF implements Serializable {
 
 	public static final String NEWLINE = "\n";
 
-	public static boolean selfLoops = true;
+//	public static boolean selfLoops = true;
 
 	public static final String MOTIFS_OUT_FILE_NAME = "motifs.OUT";
+	public static final String MOTIS_OUT_FILE_KEY = "motifsOutputFile";
 	public static final String MOTIFS_HTML_OUT_FILE_NAME = "motifs.html";
 
 	public static void setRunningMode(String runningMode) {
 		properties.setProperty(RUNNING_MODE_KEY, runningMode);
+	}
+	
+	public static void setSelfLoop(boolean considerSelfloop) {
+		properties.setProperty(SELFLOOP_KEY, String.valueOf(considerSelfloop));
+	}
+	
+	public static void setMotisOutFile(String motifsOutFile) {
+		properties.setProperty(MOTIFS_OUT_FILE_NAME, motifsOutFile);
+	}
+	
+	public static boolean considerSelfloop() {
+		return Boolean.valueOf(properties.getProperty(SELFLOOP_KEY));
 	}
 
 	public static String getRunningMode() {
@@ -213,6 +218,7 @@ public class CONF implements Serializable {
 
 		String prefix = networkName + ".rand.";
 		properties.setProperty(PREFIX_KEY, prefix);
+		
 		PropertiesUtil.saveProps(PROP_FILE_NAME, properties);
 
 		return true;

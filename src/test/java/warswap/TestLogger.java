@@ -1,7 +1,5 @@
 package warswap;
 
-import org.apache.log4j.Level;
-
 import edu.osu.netmotifs.warswap.common.LoadLogger;
 
 public class TestLogger {

@@ -122,7 +122,7 @@ public class ConvertToSubgToolFormat {
 			while ((line = bufferedReader.readLine()) != null) {
 				String[] edgeParts = line.split("\t");
 				if (edgeParts[0].equalsIgnoreCase(edgeParts[1])) {
-					if (!CONF.selfLoops)
+					if (!CONF.considerSelfloop())
 						continue;
 					else {
 						int nOfColors = colorHash.keySet().size();

@@ -1,4 +1,4 @@
-/** Copyright (C) 2015 
+ /** Copyright (C) 2015 
  * @author Mitra Ansariola 
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -130,7 +130,7 @@ public class GenerateMotifImages {
 		}
 	}
 
-	public void createHtm(float zScoreCutoff,float pvalueCutoff,  int recPerPage) throws Exception {
+	public void createHtm(float zScoreCutoff,float pvalueCutoff,  int recPerPage, boolean referesh) throws Exception {
 		InputStream inputStream;
 		try {
 			inputStream = new FileInputStream(new File(motifsFile));
@@ -183,7 +183,14 @@ public class GenerateMotifImages {
 								continue;
 						}
 					}
-					generateImagesSize3(g, parts[0]);
+					String imageFileName = parts[0];
+					if (!referesh) {
+						imageFileName += "_";
+						for (int i = 0; i < colPerGraphHash.size(); i++) {
+							imageFileName += colPerGraphHash.get(i);
+						}
+					}
+					generateImagesSize3(g, imageFileName);
 					File file = new File(imageOutFile);
 					tableStr += "<tr>" + "<td><img src=\"" + relativePathToImage + "\" width=\"80\" height=\"80\" >" + "</td>" 
 							+ "<td>" + parts[1] + "</td>" + "<td>" + parts[2] + "</td>" + "<td>" + parts[3] + "</td>" + "<td>" + adjMtx + "</td>" + "</tr>";
@@ -226,7 +233,7 @@ public class GenerateMotifImages {
 		try {
 			new GenerateMotifImages(cHash,
 					"/home/mitra/workspace/uni-workspace/warswap_tool/warswap.subgraphsdddd.OUT", 3, "data/htmout.htm")
-					.createHtm(1, 0, 10);
+					.createHtm(1, 0, 10, false);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -22,9 +22,9 @@ Original code is created by Saeed Shahrivari
 
 package edu.osu.netmotifs.subenum;
 
-import com.carrotsearch.hppc.LongLongOpenHashMap;
-
 import java.util.Stack;
+
+import com.carrotsearch.hppc.LongLongOpenHashMap;
 
 /**
  * Created by Saeed on 6/20/14.

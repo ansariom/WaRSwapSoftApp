@@ -8,10 +8,26 @@
 	<url>http://maven.apache.org</url>
 	<dependencies>
 		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>16.0.1</version>
+		</dependency>
+		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.14</version>
 		</dependency>
+		<dependency>
+			<groupId>com.carrotsearch</groupId>
+			<artifactId>hppc</artifactId>
+			<version>0.6.0</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-cli</groupId>
+			<artifactId>commons-cli</artifactId>
+			<version>1.2</version>
+		</dependency>
+
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
@@ -21,7 +37,7 @@
 			<groupId>net.sf.jung</groupId>
 			<artifactId>jung-api</artifactId>
 			<version>2.0.1</version>
-		</dependency>
+		</dependency> 
 		<dependency>
 			<groupId>net.sf.jung</groupId>
 			<artifactId>jung-graph-impl</artifactId>
@@ -80,7 +96,7 @@
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>edu.osu.netmotifs.warswap.ui.StartWarswapUI
+							<mainClass>edu.osu.netmotifs.warswap.ui.StartWarswapSoftApp
 							</mainClass>
 						</manifest>
 					</archive>
@@ -102,7 +118,7 @@
 					<exclude>append/</exclude>
 				</excludes>
 			</resource>
-			
+
 		</resources>
 	</build>
 

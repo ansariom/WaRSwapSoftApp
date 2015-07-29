@@ -44,17 +44,7 @@ PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 package edu.osu.netmotifs.warswap;
 
-import static edu.osu.netmotifs.warswap.common.CONF.FAILE_STATUS;
-import static edu.osu.netmotifs.warswap.common.CONF.FNM_EDGE_ORIG_SUFFIX;
-import static edu.osu.netmotifs.warswap.common.CONF.FNM_OUT_SUFFIX;
-import static edu.osu.netmotifs.warswap.common.CONF.NETWORK_NAME_KEY;
-import static edu.osu.netmotifs.warswap.common.CONF.PC_MODE;
-import static edu.osu.netmotifs.warswap.common.CONF.SUBENUM_OUTDIR_KEY;
-import static edu.osu.netmotifs.warswap.common.CONF.createDirectories;
-import static edu.osu.netmotifs.warswap.common.CONF.pool;
-import static edu.osu.netmotifs.warswap.common.CONF.poolExecutor;
-import static edu.osu.netmotifs.warswap.common.CONF.properties;
-import static edu.osu.netmotifs.warswap.common.CONF.setRunningMode;
+import static edu.osu.netmotifs.warswap.common.CONF.*;
 
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -81,9 +71,10 @@ public class JWarswapMultiThread implements Callable<String> {
 	private String edgeVtxColorFile;
 
 
-	public void setSelfLoops(boolean selfLoops) {
-		CONF.selfLoops = selfLoops;
-	}
+//	public void setSelfLoops(boolean selfLoops) {
+////		CONF.selfLoops = selfLoops;
+//		setSelfLoop(selfLoops);
+//	}
 
 	public boolean isDone() {
 		return done;
@@ -101,19 +92,26 @@ public class JWarswapMultiThread implements Callable<String> {
 		this.noOfIterations = noOfIterations;
 	}
 
-	public JWarswapMultiThread(String inEdgFile, String vFinVtxFile, String outBase,
-			String networkName, int motifSize) throws Exception {
+	public JWarswapMultiThread(String inEdgFile, String inVtxFile, String outBase,
+			String networkName, int motifSize, boolean hasSelfLoops) throws Exception {
 		try {
+			//indicates that the software is running in PC mode
 			setRunningMode(PC_MODE);
-			numericalVertexFile = vFinVtxFile + ".txt";
+			CONF.setSelfLoop(hasSelfLoops);
+			
+			// set input/output options
+			numericalVertexFile = inVtxFile + ".txt";
 			edgeVtxColorFile = inEdgFile + ".all.txt";
-			Utils.convertToNumericalVColor(vFinVtxFile, numericalVertexFile);
+			Utils.convertToNumericalVColor(inVtxFile, numericalVertexFile);
 			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(inEdgFile, edgeVtxColorFile, numericalVertexFile);
+			
+			// create required directories
 			if (!createDirectories(inEdgFile, numericalVertexFile, outBase, networkName, edgeVtxColorFile, motifSize))
 				return;
+			
 		} catch (Exception e) {
 			 logger.error(e.getMessage() + "\n" + java.util.Arrays.toString(e.getStackTrace()));
-//			 cleanup();
+			 cleanup();
 			 throw e;
 		}
 	}
@@ -139,7 +137,7 @@ public class JWarswapMultiThread implements Callable<String> {
 				finishedJobs++;
 			} 
 			if (FAILE_STATUS.equalsIgnoreCase(status)) {
-//				cleanup();
+				cleanup();
 				return errorMsg;
 			}
 			long endTime = System.currentTimeMillis();
@@ -150,13 +148,13 @@ public class JWarswapMultiThread implements Callable<String> {
 					Integer.valueOf(properties.get(CONF.MOTIF_SIZE_KEY).toString()), properties.getProperty(SUBENUM_OUTDIR_KEY),
 					fnmOrigOUtFile, signOutFile, CONF.FN_OUT_EXTENSION).extractSubGraphsInfo();
 			done = true;
-//			cleanup();
+			cleanup();
 		} catch (Exception e) {
 			logger.error(e);
-//			cleanup();
+			cleanup();
 		} catch (Throwable e) {
 			logger.error(e);
-//			cleanup();
+			cleanup();
 		} 
 		return "";
 	}
@@ -168,7 +166,7 @@ public class JWarswapMultiThread implements Callable<String> {
 		file = new File(numericalVertexFile);
 		if (file.isFile())
 			file.delete();
-		CreateDirectory.deleteDir(properties.get(CONF.NET_DIR_KEY).toString());
+//		CreateDirectory.deleteDir(properties.get(CONF.NET_DIR_KEY).toString());
 	}
 
 	public String getStatus() {
@@ -185,7 +183,7 @@ public class JWarswapMultiThread implements Callable<String> {
 
 	public static void main(String[] args) {
 		try {
-			new JWarswapMultiThread(args[0], args[1], args[2], args[3], 3)
+			new JWarswapMultiThread(args[0], args[1], args[2], args[3], 3, true)
 					.call();
 		} catch (Exception e) {
 			e.printStackTrace();

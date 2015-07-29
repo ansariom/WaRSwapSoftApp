@@ -44,11 +44,13 @@ PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 package edu.osu.netmotifs.warswap;
 
+import static edu.osu.netmotifs.warswap.common.CONF.GENE_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.MIR_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.TF_Color;
+
 import org.apache.log4j.Logger;
 
-import edu.osu.netmotifs.warswap.common.DivisionByZeroException;
 import edu.osu.netmotifs.warswap.common.LoadLogger;
-import static edu.osu.netmotifs.warswap.common.CONF.*;
 
 public class JWarswap {
 	private static Logger logger = LoadLogger.rLogger;

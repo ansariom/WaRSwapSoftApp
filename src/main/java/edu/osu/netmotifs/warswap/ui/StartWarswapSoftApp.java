@@ -53,6 +53,7 @@ import static edu.osu.netmotifs.warswap.common.CONF.GENE_STR;
 import static edu.osu.netmotifs.warswap.common.CONF.INFO_MSG_TYPE;
 import static edu.osu.netmotifs.warswap.common.CONF.MIR_Color;
 import static edu.osu.netmotifs.warswap.common.CONF.MIR_STR;
+import static edu.osu.netmotifs.warswap.common.CONF.MOTIFS_HTML_OUT_FILE_NAME;
 import static edu.osu.netmotifs.warswap.common.CONF.MOTIFS_OUT_DIR;
 import static edu.osu.netmotifs.warswap.common.CONF.MOTIFS_OUT_FILE_NAME;
 import static edu.osu.netmotifs.warswap.common.CONF.NEWLINE;
@@ -64,6 +65,7 @@ import static edu.osu.netmotifs.warswap.common.CONF.pool;
 
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Toolkit;
@@ -74,10 +76,9 @@ import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -88,13 +89,11 @@ import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.Document;
 
 import edu.osu.netmotifs.warswap.JWarswapMultiThread;
-import static edu.osu.netmotifs.warswap.common.CONF.*;
 import edu.osu.netmotifs.warswap.common.CreateDirectory;
 import edu.osu.netmotifs.warswap.common.Utils;
 import edu.osu.netmotifs.warswap.common.exception.DuplicateItemException;
@@ -157,7 +156,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				inputVertexFormatCheck(inVtxFile);
 				inputEdgeFormatCheck(inEdgeFile);
 				jWarswapMultiThread = new JWarswapMultiThread(inEdgeFile, inVtxFile,
-						inDir, OUT_DIR_NAME, motifSize);
+						inDir, OUT_DIR_NAME, motifSize, selfLoopCheck.isSelected());
 			} catch (Exception e) {
 				updateReportConsole(ERROR_MSG_TYPE, e.getMessage());
 				e.printStackTrace();
@@ -167,7 +166,6 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 			// Initialize main thread with configured options
 			jWarswapMultiThread.setNoOfIterations(nOfRandNets);
 			jWarswapMultiThread.setSignOutFile(motifOutputFile);
-			jWarswapMultiThread.setSelfLoops(selfLoopCheck.isSelected());
 
 			reportArea.setText("");
 			updateReportConsole(INFO_MSG_TYPE, "Motif discovery started ...");
@@ -356,7 +354,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				pval = Float.valueOf(pvalTxt.getText());
 			GenerateMotifImages generateMotifImages = new GenerateMotifImages(colorHash, motifOutputFile, motifSize, 
 					htmlOutFile);
-			generateMotifImages.createHtm(zscore, pval, 25);
+			generateMotifImages.createHtm(zscore, pval, 25, true);
 		} catch (Exception ex) {
 			JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
 			ex.printStackTrace();
@@ -373,7 +371,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				pval = Float.valueOf(pvalTxt.getText());
 			GenerateMotifImages generateMotifImages = new GenerateMotifImages(colorHash, motifOutputFile, motifSize, 
             		htmlFile.getAbsolutePath());
-            generateMotifImages.createHtm(zscore, pval, 25);
+            generateMotifImages.createHtm(zscore, pval, 25, false);
             updateReportConsole(INFO_MSG_TYPE, "HTML generated!");
 		} catch (Exception ex) {
 			JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
@@ -528,6 +526,19 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 		
 		saveHtmBtn.setEnabled(false);
 		reloadBtn.setEnabled(false);
+		
+		helpBtn.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Desktop.getDesktop().open(new File("userManual.pdf"));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
 		
 		zscoreCheck.addActionListener(new ActionListener() {
 			
@@ -1019,7 +1030,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 		motifSizeLbl.setText("Motif size");
 
 		motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel(
-				new String[] { "1", "2", "3", "4", "5", "6", "7" }));
+				new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" }));
 		motifSizeCombo.setSelectedIndex(2);
 		motifSizeCombo.setToolTipText("");
 
@@ -1565,14 +1576,14 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				JOptionPane.showMessageDialog(StartWarswapSoftApp.this, "Error! Outpit path is empty!!");
 				return;
 			}
-			if (new File(outDirTxt.getText()).exists()) {
-				int response = JOptionPane.showConfirmDialog(StartWarswapSoftApp.this,
-						"Warning! File exists! Do you want to overwrite it? ", "Warning", 
-						JOptionPane.YES_NO_OPTION,
-						JOptionPane.QUESTION_MESSAGE);
-				if (response == 1)
-					return;
-			}
+//			if (new File(outDirTxt.getText()).exists()) {
+//				int response = JOptionPane.showConfirmDialog(StartWarswapSoftApp.this,
+//						"Warning! File exists! Do you want to overwrite it? ", "Warning", 
+//						JOptionPane.YES_NO_OPTION,
+//						JOptionPane.QUESTION_MESSAGE);
+//				if (response == 1)
+//					return;
+//			}
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			deactivateUIItems();
 			try {

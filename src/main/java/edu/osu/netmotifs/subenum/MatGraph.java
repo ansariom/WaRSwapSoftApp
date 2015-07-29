@@ -22,13 +22,21 @@ Original code is created by Saeed Shahrivari
 
 package edu.osu.netmotifs.subenum;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.google.common.primitives.Ints;
 
 import edu.osu.netmotifs.warswap.common.CONF;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * @modified and commented by Mitra Ansariola
@@ -170,7 +178,7 @@ public class MatGraph implements Graph {
     }
 
     private void addEdge(int source, int dest, byte color1, byte color2) {
-    	if (dest == source && CONF.selfLoops) {
+    	if (dest == source && CONF.considerSelfloop()) {
     		addVertex(source, Byte.valueOf("3"));
     		return;
     	}

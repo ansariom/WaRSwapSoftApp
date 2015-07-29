@@ -15,7 +15,11 @@ package edu.osu.netmotifs.warswap.common;
  *
  *                 http://www.keithschwarz.com/darts-dice-coins/
  */
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.Random;
 
 public final class AliasMethod {
     /* The random number generator used to sample from the distribution. */

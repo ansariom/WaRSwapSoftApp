@@ -44,16 +44,31 @@ PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 package edu.osu.netmotifs.warswap;
 
+import static edu.osu.netmotifs.warswap.common.CONF.CLUSTER_MODE;
+import static edu.osu.netmotifs.warswap.common.CONF.DIR_SEP;
+import static edu.osu.netmotifs.warswap.common.CONF.FNM_EDGE_ORIG_SUFFIX;
+import static edu.osu.netmotifs.warswap.common.CONF.FNM_OUT_SUFFIX;
+import static edu.osu.netmotifs.warswap.common.CONF.GENE_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.MIR_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.NETWORK_NAME_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.SL_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.SUBENUM_OUTDIR_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.TF_Color;
+import static edu.osu.netmotifs.warswap.common.CONF.createDirectories;
+import static edu.osu.netmotifs.warswap.common.CONF.properties;
+import static edu.osu.netmotifs.warswap.common.CONF.setRunningMode;
+
+import java.awt.Color;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.ggf.drmaa.DrmaaException;
 import org.ggf.drmaa.JobInfo;
 import org.ggf.drmaa.JobTemplate;
 import org.ggf.drmaa.Session;
@@ -64,7 +79,7 @@ import edu.osu.netmotifs.warswap.common.ConvertToSubgToolFormat;
 import edu.osu.netmotifs.warswap.common.CreateDirectory;
 import edu.osu.netmotifs.warswap.common.Utils;
 import edu.osu.netmotifs.warswap.significance.ExtractSignificanceMotifs;
-import static edu.osu.netmotifs.warswap.common.CONF.*;
+import edu.osu.netmotifs.warswap.ui.GenerateMotifImages;
 
 /**
  * This API is provided to enable running of the warswap tool on cluster
@@ -77,7 +92,16 @@ import static edu.osu.netmotifs.warswap.common.CONF.*;
 public class JWarswapCluster {
 	private static Logger logger = Logger.getLogger(JWarswapCluster.class);
 	private static String numericalVertexFile;
-	private static String fanFormatEdgeOut;
+	private static String edgeVtxColorFile;
+	private static HashMap<Integer, Color> colorHash = new HashMap<Integer, Color>();
+	
+	
+	private static void initVars() {
+		colorHash.put(Integer.parseInt(String.valueOf(TF_Color)), Color.BLUE);
+		colorHash.put(Integer.parseInt(String.valueOf(MIR_Color)), Color.RED);
+		colorHash.put(Integer.parseInt(String.valueOf(GENE_Color)), Color.BLACK);
+		colorHash.put(Integer.parseInt(String.valueOf(SL_Color)), Color.CYAN);
+	}
 	/**
 	 * 
 	 * @param eFileIn
@@ -87,19 +111,23 @@ public class JWarswapCluster {
 	 * @param numOfIterations
 	 */
 	public static void main(String[] args) {
-		if (args.length != 9) {
+		System.out.println("cluster   ");
+		if (args.length != 11) {
 			logger.error("Insufficient arguments!");
 			return;
 		}
+		initVars();
 		setRunningMode(CLUSTER_MODE);
 		String workingDir = args[0];
 		String bashFile = args[1];
-		String edgeFileIn = args[2];
-		String vtxFileIn = args[3];
+		String inEdgFile = args[2];
+		String inVtxFile = args[3];
 		String outBaseDir = args[4];
 		String networkName = args[5];
 		int motifSize = 3;
 		String motifsOutFile = args[8];
+		String motifsHtmOutFile = args[9];
+		String detectSelfloops = args[10];
 
 		String noOfIterations = "2500";
 		try {
@@ -107,21 +135,22 @@ public class JWarswapCluster {
 			motifSize = Integer.valueOf(args[6]);
 			Integer.valueOf(args[7]);
 			noOfIterations = args[7];
+			CONF.setSelfLoop(Boolean.valueOf(detectSelfloops));
 		} catch (Exception e) {
 			logger.error(e.getStackTrace());
 			return;
 		}
 
 		/** Create output directories */
-		numericalVertexFile = vtxFileIn + ".txt";
-		fanFormatEdgeOut = edgeFileIn + ".fan.txt";
+		numericalVertexFile = inVtxFile + ".txt";
+		edgeVtxColorFile = inEdgFile + ".all.txt";
 		try {
-			Utils.convertToNumericalVColor(vtxFileIn, numericalVertexFile);
-			new ConvertToSubgToolFormat().convertToEdgVtxColorFileFormat(edgeFileIn, fanFormatEdgeOut, numericalVertexFile);
+			Utils.convertToNumericalVColor(inVtxFile, numericalVertexFile);
+			ConvertToSubgToolFormat.convertToEdgVtxColorFileFormat(inEdgFile, edgeVtxColorFile, numericalVertexFile);
 		} catch (Exception e1) {
 			logger.error(Arrays.toString(e1.getStackTrace()));
 		}
-		if (!createDirectories(edgeFileIn, numericalVertexFile, outBaseDir, networkName, fanFormatEdgeOut, motifSize))
+		if (!createDirectories(inEdgFile, numericalVertexFile, outBaseDir, networkName, edgeVtxColorFile, motifSize))
 			return;
 		
 		/** DRMAA Settings */
@@ -135,8 +164,8 @@ public class JWarswapCluster {
 			jt.setRemoteCommand(workingDir + DIR_SEP + bashFile);
 			jt.setNativeSpecification("-shell yes");
 			List<String> argList = new ArrayList<String>();
-			argList.add(edgeFileIn);
-			argList.add(vtxFileIn);
+			argList.add(inEdgFile);
+			argList.add(inVtxFile);
 			argList.add(outBaseDir);
 			argList.add(networkName);
 			argList.add(noOfIterations);
@@ -191,11 +220,16 @@ public class JWarswapCluster {
 				
 			}
 			logger.info("ALL JOBS PROCESSED!" );
-			String fnmOrigOUtFile = properties.getProperty(NETWORK_NAME_KEY)
+			String subeumOrigOutFile = properties.getProperty(NETWORK_NAME_KEY)
 					+ FNM_EDGE_ORIG_SUFFIX + FNM_OUT_SUFFIX;
 			new ExtractSignificanceMotifs(
 					Integer.valueOf(properties.get(CONF.MOTIF_SIZE_KEY).toString()), properties.getProperty(SUBENUM_OUTDIR_KEY),
-					fnmOrigOUtFile, motifsOutFile, CONF.FN_OUT_EXTENSION).extractSubGraphsInfo();
+					subeumOrigOutFile, motifsOutFile, CONF.FN_OUT_EXTENSION).extractSubGraphsInfo();
+			
+			// Save in HTML file
+			GenerateMotifImages generateMotifImages = new GenerateMotifImages(colorHash, motifsOutFile, motifSize, 
+					motifsHtmOutFile);
+			generateMotifImages.createHtm(-1, -1, 25, false);
 			cleanup();
 			session.exit();
 		} catch (Exception e) {
@@ -206,7 +240,7 @@ public class JWarswapCluster {
 	}
 	
 	private static void cleanup() {
-		File file = new File(fanFormatEdgeOut);
+		File file = new File(edgeVtxColorFile);
 		file.delete();
 		file = new File(numericalVertexFile);
 		file.delete();

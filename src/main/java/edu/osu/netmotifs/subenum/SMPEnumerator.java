@@ -91,14 +91,8 @@ public class SMPEnumerator {
     public static long enumerateNonIsoInParallel(final Graph graph, final int motifSize, final int thread_count, Stopwatch stopwatch, FileWriter writer) throws IOException, InterruptedException {
         final AtomicLong found = new AtomicLong(0);
         List<SMPState> sorted = null;
-        if (randomStates) {
-//            if(graph.vertexCount()>7000)
-//                sorted = SMPState.getAllOneStates(graph);
-//            else
-            sorted = SMPState.getSeedStatesRandomly(graph);
-            //Collections.shuffle(sorted);
-        } else
-            sorted = SMPState.getSeedStates(graph);
+        
+        sorted = SMPState.getSeedStates(graph, motifSize);
 
         final ConcurrentLinkedQueue<SMPState> bq = new ConcurrentLinkedQueue<SMPState>(sorted);
         sorted.clear();

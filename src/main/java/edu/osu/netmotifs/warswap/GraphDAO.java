@@ -54,7 +54,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 import edu.osu.netmotifs.warswap.common.Edge;
 import edu.osu.netmotifs.warswap.common.Vertex;

@@ -21,13 +21,21 @@ Original code is created by Saeed Shahrivari
  */
 package edu.osu.netmotifs.subenum;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.google.common.primitives.Ints;
 
 import edu.osu.netmotifs.warswap.common.CONF;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * @modified and commented by Mitra Ansariola
@@ -147,7 +155,7 @@ public class HashGraph implements Graph {
     private void addEdge(int source, int dest, byte color1, byte color2) {
     	// ADDED by Mitra : not allowed to set self-loop edges in this way
     	// Instead we  assign different colors to self loops
-    	if (source == dest && CONF.selfLoops) {
+    	if (source == dest && CONF.considerSelfloop()) {
     		addVertex(source, Byte.valueOf("3"));
     		return;
     	}

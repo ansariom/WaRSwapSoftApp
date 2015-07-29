@@ -21,14 +21,14 @@ Original code is created by Saeed Shahrivari
  */
 package edu.osu.netmotifs.subenum;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.collect.Ordering;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.collect.Ordering;
 
 /**
  * Created by Saeed on 4/12/14.
@@ -122,8 +122,8 @@ public class SMPState {
         return sorted;
     }
 
-    public static List<SMPState> getSeedStates(final Graph graph) {
-        if (graph.vertexCount() < 7000)
+    public static List<SMPState> getSeedStates(final Graph graph, int motifSize) {
+        if (graph.vertexCount() < 7000 && motifSize > 2)
             return getAllBiStatesOrderedByLoad(graph);
 
         return getAllOneStatesOrderedByLoad(graph);

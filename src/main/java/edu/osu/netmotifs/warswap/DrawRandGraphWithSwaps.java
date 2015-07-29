@@ -151,6 +151,9 @@ public class DrawRandGraphWithSwaps {
 		graphDAO.selectGraphsLayer(srcVHash, tgtVHash, col1, col2,
 				srcIndexHash, tgtIndexHash, tableName);
 		
+		if (srcVHash.size() == 0)
+			return;
+		
 		List<Integer> srcVDegList = new ArrayList<Integer>();
 		List<Integer> tgtVDegList = new ArrayList<Integer>();
 		for (int i = 0; i < srcVHash.size(); i++) {

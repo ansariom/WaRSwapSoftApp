@@ -21,17 +21,16 @@ Original code is created by Saeed Shahrivari
  */
 package edu.osu.netmotifs.subenum;
 
-import com.google.common.base.Stopwatch;
-
-import edu.osu.netmotifs.warswap.common.CONF;
-
-import org.apache.commons.cli.*;
-
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
-import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Stopwatch;
 
 public class CallEnumerateSubGraphs {
 	
@@ -59,11 +58,45 @@ public class CallEnumerateSubGraphs {
             logForOutput += "Graph's input file: " + inputGraphPath + " \nSubgraph size:" + motifSize + "\n";
             writer.write(logForOutput);
             writer.flush();
-            SMPEnumerator.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
+            
+            if (motifSize == 1) {
+            	OneNodeMotifsEnumeration(inputGraphPath, outputPath, graph.vertexCount(), stopwatch, writer);
+            } else 
+            	SMPEnumerator.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
+	
+	public void OneNodeMotifsEnumeration(String edgeFile, String outputFile, int vertexCount, Stopwatch stopwatch, FileWriter writer) {
+		int selfLoopCount = 0;
+		try {
+			InputStream inputStream = new FileInputStream(
+					new File(edgeFile));
+			BufferedReader bufferedReader = new BufferedReader(
+					new InputStreamReader(inputStream));
+			String line = null;
+
+			while ((line = bufferedReader.readLine()) != null) {
+				if (line.split("\t")[0].equalsIgnoreCase(line.split("\t")[1]))
+					selfLoopCount++;
+			}
+			
+			bufferedReader.close();
+			inputStream.close();
+			
+			writer.write("Total enumerated subgraphs: " + vertexCount + "\n\n");
+			writer.write("Enumeration took : " + stopwatch + " \tequal to " + stopwatch.elapsed(TimeUnit.SECONDS) + " seconds.\n\n");
+			writer.write("Total number of non-isomorphic subgraphs : 4\n");
+			writer.write("======================================================================\n\nResults..\n");
+			writer.write("subgraph Number, Adj Matrix, Frequency\n\n");
+			writer.write("1,3," + selfLoopCount + "\n");
+			writer.flush();
+			writer.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

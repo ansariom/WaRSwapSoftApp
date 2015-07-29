@@ -2,15 +2,14 @@ package warswap;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import peersim.util.WeightedRandPerm;
 import edu.osu.netmotifs.warswap.common.AliasMethod;
 import edu.osu.netmotifs.warswap.common.GenerateRandom;
+import peersim.util.WeightedRandPerm;
 
 public class TestRandom {
 	public static void main(String[] args) {
