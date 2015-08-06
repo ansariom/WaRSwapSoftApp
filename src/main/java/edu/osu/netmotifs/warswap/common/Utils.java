@@ -83,6 +83,27 @@ public class Utils {
 				outMtx += "\n";
 		}
 		
+		return outMtx += "\n";
+	}
+	
+	public static String getAdjMtxOfSubgraph(String matrixStr, int motifSize, long values, int subgNo) {
+		String outMtx = "";
+//		byte[] arr = ByteArray.longToByteArray(l, motifSize * motifSize * 2);
+		byte[] arr = ByteArray.stringToByteArray(matrixStr);
+//		System.out.println(Arrays.toString(arr));
+		
+		for (int i = 0; i < motifSize; i++) {
+			if (i == 0)
+				outMtx = subgNo + ",";
+			for (int j = 0; j < motifSize; j++) {
+				outMtx = outMtx + arr[(i * motifSize) + j];
+			}
+			if (i == 0)
+				outMtx = outMtx + ", " + values + "\n";
+			else
+				outMtx += "\n";
+		}
+		
     	return outMtx += "\n";
 	}
 	

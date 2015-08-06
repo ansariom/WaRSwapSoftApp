@@ -97,6 +97,7 @@ public class JWarswapMultiThread implements Callable<String> {
 		try {
 			//indicates that the software is running in PC mode
 			setRunningMode(PC_MODE);
+
 			CONF.setSelfLoop(hasSelfLoops);
 			
 			// set input/output options

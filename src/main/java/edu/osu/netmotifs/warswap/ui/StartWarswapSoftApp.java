@@ -90,10 +90,10 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.Document;
 
 import edu.osu.netmotifs.warswap.JWarswapMultiThread;
+import edu.osu.netmotifs.warswap.common.CONF;
 import edu.osu.netmotifs.warswap.common.CreateDirectory;
 import edu.osu.netmotifs.warswap.common.Utils;
 import edu.osu.netmotifs.warswap.common.exception.DuplicateItemException;
@@ -121,6 +121,8 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 	private int maxEId = 0;
 	private int motifSize = 3;
 	private String motifOutputFile = "";
+	protected StartWarswapSoftApp thisClass;
+	private SaveOptionsUI saveOptionsUI;
 	
 	private Task task;
 
@@ -308,7 +310,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 						throw new VertexEdgeDontMatchException();
 					String edgeKey = v1 + "_" + v2;
 					if (eHashMap.get(edgeKey) != null) 
-						throw new DuplicateItemException("Input edge file format error : douplicate entry ( " + edgeKey + " )");
+						throw new DuplicateItemException("Input edge file format error : duplicate entry ( " + edgeKey + " )");
 						
 					if (v1 > maxEId)
 						maxEId = v1;
@@ -362,17 +364,28 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 		loadHTMLPanel();
 	}
 	
-	private void saveHTML(File htmlFile) {
+	public void saveMotifs(File saveFile, String filetype) {
+		saveOptionsUI.dispose();
+		
 		float zscore = -1, pval = -1;
 		try {
 			if (zscoreCheck.isSelected())
 				zscore = Float.valueOf(zscoreTxt.getText());
 			if (pvalCheck.isSelected())
 				pval = Float.valueOf(pvalTxt.getText());
-			GenerateMotifImages generateMotifImages = new GenerateMotifImages(colorHash, motifOutputFile, motifSize, 
-            		htmlFile.getAbsolutePath());
-            generateMotifImages.createHtm(zscore, pval, 25, false);
-            updateReportConsole(INFO_MSG_TYPE, "HTML generated!");
+			
+			if (CONF.TEXT_FILE_TYPE.equalsIgnoreCase(filetype))
+				new GenerateMotifsTextOutput().saveAsTxtFile(motifOutputFile, saveFile.getAbsolutePath(), CONF.TEXT_FILE_TYPE, zscore, pval);
+			else if (CONF.CSV_FILE_TYPE.equalsIgnoreCase(filetype))
+				new GenerateMotifsTextOutput().saveAsTxtFile(motifOutputFile, saveFile.getAbsolutePath(), CONF.CSV_FILE_TYPE, zscore, pval);
+			else {
+				GenerateMotifImages generateMotifImages = new GenerateMotifImages(colorHash, motifOutputFile, motifSize, 
+						saveFile.getAbsolutePath());
+				generateMotifImages.createHtm(zscore, pval, 25, false);
+			}
+			
+            updateReportConsole(INFO_MSG_TYPE, "motifs saved to file: " + motifOutputFile);
+
 		} catch (Exception ex) {
 			JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
 			ex.printStackTrace();
@@ -433,31 +446,44 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 
 
 	private void initOptions() {
-		motifSizeCombo.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (motifSizeCombo.getSelectedItem().toString()
-						.equalsIgnoreCase("1")
-						|| motifSizeCombo.getSelectedItem().toString()
-								.equalsIgnoreCase("2")) {
-					selfLoopCheck.setSelected(true);
-				} else {
-					selfLoopCheck.setEnabled(true);
-				}
-			}
-		});
+//		motifSizeCombo.addActionListener(new ActionListener() {
+//
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//				if (motifSizeCombo.getSelectedItem().toString()
+//						.equalsIgnoreCase("1")
+//						|| motifSizeCombo.getSelectedItem().toString()
+//								.equalsIgnoreCase("2")) {
+//					selfLoopCheck.setSelected(true);
+//				} else {
+//					selfLoopCheck.setEnabled(true);
+//				}
+//			}
+//		});
 
 		selfLoopCheck.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (motifSizeCombo.getSelectedItem().toString()
-						.equalsIgnoreCase("1")
-						|| motifSizeCombo.getSelectedItem().toString()
-								.equalsIgnoreCase("2")) {
-					selfLoopCheck.setSelected(true);
+				int s = motifSizeCombo.getSelectedIndex();
+				String ss = (String) motifSizeCombo.getSelectedItem();
+				if (!selfLoopCheck.isSelected()) {
+					motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel<String>(
+							new String[] { "2", "3", "4", "5", "6", "7", "8" }));
+					motifSizeCombo.setSelectedItem(ss);
+//					motifSizeCombo.setSelectedIndex(1);
+				} else {
+					motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel<String>(
+							new String[] { "1", "2", "3", "4", "5", "6", "7", "8" }));
+					motifSizeCombo.setSelectedItem(ss);
 				}
+				
+//				if (motifSizeCombo.getSelectedItem().toString()
+//						.equalsIgnoreCase("1")
+//						|| motifSizeCombo.getSelectedItem().toString()
+//								.equalsIgnoreCase("2")) {
+//					selfLoopCheck.setSelected(true);
+//				}
 			}
 		});
 
@@ -518,11 +544,13 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 		geneBtn.setEnabled(false);
 		sloopBtn.setEnabled(false);
 
-		zscoreCheck.setEnabled(false);
-		zscoreTxt.setEnabled(false);
+		zscoreCheck.setEnabled(true);
+		zscoreCheck.setSelected(true);
+		zscoreTxt.setEnabled(true);
 
-		pvalTxt.setEnabled(false);
-		pvalCheck.setEnabled(false);
+		pvalTxt.setEnabled(true);
+		pvalCheck.setEnabled(true);
+		pvalCheck.setSelected(true);
 		
 		saveHtmBtn.setEnabled(false);
 		reloadBtn.setEnabled(false);
@@ -572,15 +600,25 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser chooser = new JFileChooser(outDirTxt.getText());
-				FileNameExtensionFilter filter = new FileNameExtensionFilter("HTML FILES", "htm", "html");
-				chooser.setFileFilter(filter);
-				
-				int returnVal = chooser.showSaveDialog(StartWarswapSoftApp.this);
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					File file = chooser.getSelectedFile();
-					saveHTML(file);
+//				JFileChooser chooser = new JFileChooser(outDirTxt.getText());
+//				FileNameExtensionFilter filter = new FileNameExtensionFilter("HTML FILES", "htm", "html");
+//				chooser.setFileFilter(filter);
+//				
+//				int returnVal = chooser.showSaveDialog(StartWarswapSoftApp.this);
+//				if (returnVal == JFileChooser.APPROVE_OPTION) {
+//					File file = chooser.getSelectedFile();
+//					saveHTML(file);
+//				}
+				if (outDirTxt.getText().isEmpty() || !(new File(outDirTxt.getText()).isDirectory()) ) {
+					JOptionPane.showMessageDialog(thisClass, "Output directory is empty or not valid!");
 				}
+				saveOptionsUI = new SaveOptionsUI(outDirTxt.getText(), thisClass);
+            	Toolkit tk = Toolkit.getDefaultToolkit();
+				Dimension screenSize = tk.getScreenSize();
+            	final int WIDTH = screenSize.width;
+				final int HEIGHT = screenSize.height;
+				saveOptionsUI.setLocation(WIDTH / 3, HEIGHT / 3);
+				saveOptionsUI.setVisible(true);
 			}
 		});
 		
@@ -761,7 +799,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 		jPanel2 = new javax.swing.JPanel();
 		jPanel3 = new javax.swing.JPanel();
 		motifSizeLbl = new javax.swing.JLabel();
-		motifSizeCombo = new javax.swing.JComboBox();
+		motifSizeCombo = new javax.swing.JComboBox<String>();
 		selfLoopCheck = new javax.swing.JCheckBox();
 		randNetLbl = new javax.swing.JLabel();
 		randNetTxt = new javax.swing.JTextField();
@@ -1029,8 +1067,8 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 
 		motifSizeLbl.setText("Motif size");
 
-		motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel(
-				new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" }));
+		motifSizeCombo.setModel(new javax.swing.DefaultComboBoxModel<String>(
+				new String[] { "1", "2", "3", "4", "5", "6", "7", "8" }));
 		motifSizeCombo.setSelectedIndex(2);
 		motifSizeCombo.setToolTipText("");
 
@@ -1488,8 +1526,13 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				final int HEIGHT = screenSize.height;
 				startWarswapUI.setLocation(WIDTH / 8, HEIGHT / 4);
 				startWarswapUI.setVisible(true);
+				startWarswapUI.setThisClass(startWarswapUI);
 			}
 		});
+	}
+
+	protected void setThisClass(StartWarswapSoftApp startWarswapUI) {
+		thisClass = startWarswapUI;
 	}
 
 	// Variables declaration - do not modify
@@ -1517,7 +1560,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 	private javax.swing.JScrollPane jScrollPane1;
 	private javax.swing.JSplitPane mainSplitPnl;
 	private javax.swing.JButton mirBtn;
-	private javax.swing.JComboBox motifSizeCombo;
+	private javax.swing.JComboBox<String> motifSizeCombo;
 	private javax.swing.JLabel motifSizeLbl;
 	private javax.swing.JButton outDirBtn;
 	private javax.swing.JLabel outDirLbl;

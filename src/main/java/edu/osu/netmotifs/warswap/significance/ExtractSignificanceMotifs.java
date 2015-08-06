@@ -48,6 +48,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -150,34 +152,39 @@ public class ExtractSignificanceMotifs {
 		while (origMotifs.hasNext()) {
 			String motif = (String) origMotifs.next();
 			
-			double origCount = origCountsHash.get(motif);
-			double mean = 0.0;
-			double M2 = 0.0, variance = 0.0;
-			double nrand_gt_real = 0.0;   // for p-value
+			BigDecimal origCount = new BigDecimal(origCountsHash.get(motif));
+			BigDecimal mean = BigDecimal.valueOf(0);
+			BigDecimal M2 = BigDecimal.valueOf(0), variance = BigDecimal.valueOf(0);
+			int nrand_gt_real = 0;   // for p-value
 			
 			if (randCountHash.containsKey(motif)) {
 				List<Long> randCountsList = randCountHash.get(motif);
 				for (Long randCount : randCountsList)
-					mean += randCount;
-				mean = mean / (noOfRandNetworks - 1);
+					mean = mean.add(BigDecimal.valueOf(randCount));
+				mean = mean.divide(BigDecimal.valueOf(noOfRandNetworks), 2, RoundingMode.HALF_UP);
 					
 				for (Long randCount : randCountsList) {
-					M2 += Math.pow((randCount - mean), 2);  // for variance computation
-					if (randCount > origCount)				// for p-value calculation
+					M2 = M2.add(mean.subtract(BigDecimal.valueOf(randCount)).pow(2));
+//					M2 += Math.pow((randCount - mean), 2);  // for variance computation
+					if (origCount.compareTo(BigDecimal.valueOf(randCount)) <= 0)
 						nrand_gt_real++;
 				}
-				variance = M2 / (noOfRandNetworks - 1);
+				variance = M2.divide(BigDecimal.valueOf(noOfRandNetworks), 2, RoundingMode.HALF_UP);
 				tempRandHash.remove(motif);
 			} 
 			
-			double stdev = Math.sqrt(variance);
-			String stdStr = Utils.parseToCientificNotation(stdev);
+			double stdev = Math.sqrt(variance.doubleValue());
+			BigDecimal stdDev = BigDecimal.valueOf(stdev);
+			String stdStr = Utils.parseToCientificNotation(stdDev.doubleValue());
 			double zScore = Double.MAX_VALUE, pValue = 0.0;
 			
-			if (stdev != 0) 
-				zScore = (origCount - mean) / stdev;
+			if (stdev != 0) {
+				zScore = origCount.subtract(mean).doubleValue()/stdev; 
+			}
+//				zScore = (origCount - mean) / stdev;
 
-			pValue = nrand_gt_real / (noOfRandNetworks - 1);
+			pValue = BigDecimal.valueOf(nrand_gt_real).divide(BigDecimal.valueOf(noOfRandNetworks), 10, RoundingMode.HALF_UP).doubleValue();
+//			pValue = nrand_gt_real / (noOfRandNetworks);
 			String pValStr = Utils.parseToCientificNotation(pValue);
 			
 			String zscoreStr = Utils.parseToCientificNotation(zScore);
@@ -188,44 +195,44 @@ public class ExtractSignificanceMotifs {
 			outBuffer += motif + separator + zscoreStr + separator + pValStr + separator + stdStr + "\n";
 		}
 		
-		Iterator<String> randMotifs = tempRandHash.keySet().iterator();
-		while (randMotifs.hasNext()) {
-			String motif = (String) randMotifs.next();
-			
-			double origCount = 0.0;
-			double mean = 0.0;
-			double M2 = 0.0, variance = 0.0;
-			double nrand_gt_real = 0.0;   // for p-value
-			
-			List<Long> randCountsList = tempRandHash.get(motif);
-			for (Long randCount : randCountsList)
-				mean += randCount;
-			mean = mean / (noOfRandNetworks - 1);
-				
-			for (Long randCount : randCountsList) {
-				M2 += Math.pow((randCount - mean), 2);  // for variance computation
-				if (randCount > origCount)				// for p-value calculation
-					nrand_gt_real++;
-			}
-			variance = M2 / (noOfRandNetworks - 1);
-			
-			double stdev = Math.sqrt(variance);
-			String stdStr = Utils.parseToCientificNotation(stdev);
-			double zScore = Double.MAX_VALUE, pValue = 0.0;
-			
-			if (stdev != 0) 
-				zScore = (origCount - mean) / stdev;
-
-			pValue = nrand_gt_real / (noOfRandNetworks - 1);
-			String pValStr = Utils.parseToCientificNotation(pValue);
-			
-			String zscoreStr = Utils.parseToCientificNotation(zScore);
-			if (zScore == Double.MAX_VALUE)
-				zscoreStr = CONF.INFINIT;
-			
-			String separator = "\t";
-			outBuffer += motif + separator + zscoreStr + separator + pValStr + separator + stdStr + "\n";
-		}
+//		Iterator<String> randMotifs = tempRandHash.keySet().iterator();
+//		while (randMotifs.hasNext()) {
+//			String motif = (String) randMotifs.next();
+//			
+//			double origCount = 0.0;
+//			double mean = 0.0;
+//			double M2 = 0.0, variance = 0.0;
+//			double nrand_gt_real = 0.0;   // for p-value
+//			
+//			List<Long> randCountsList = tempRandHash.get(motif);
+//			for (Long randCount : randCountsList)
+//				mean += randCount;
+//			mean = mean / (noOfRandNetworks - 1);
+//				
+//			for (Long randCount : randCountsList) {
+//				M2 += Math.pow((randCount - mean), 2);  // for variance computation
+//				if (randCount > origCount)				// for p-value calculation
+//					nrand_gt_real++;
+//			}
+//			variance = M2 / (noOfRandNetworks - 1);
+//			
+//			double stdev = Math.sqrt(variance);
+//			String stdStr = Utils.parseToCientificNotation(stdev);
+//			double zScore = Double.MAX_VALUE, pValue = 0.0;
+//			
+//			if (stdev != 0) 
+//				zScore = (origCount - mean) / stdev;
+//
+//			pValue = nrand_gt_real / (noOfRandNetworks - 1);
+//			String pValStr = Utils.parseToCientificNotation(pValue);
+//			
+//			String zscoreStr = Utils.parseToCientificNotation(zScore);
+//			if (zScore == Double.MAX_VALUE)
+//				zscoreStr = CONF.INFINIT;
+//			
+//			String separator = "\t";
+//			outBuffer += motif + separator + zscoreStr + separator + pValStr + separator + stdStr + "\n";
+//		}
 
 		return outBuffer;
 	}
@@ -233,7 +240,8 @@ public class ExtractSignificanceMotifs {
 	public void extractSubGraphsInfo() throws Exception {
 		
 		String seperator = "\t";
-		StringBuffer outBuffer = new StringBuffer("AdjMatrix" + seperator + "Z-Score" + seperator + "P-Value" + seperator + "Std-Dev\n");
+		StringBuffer outBuffer = new StringBuffer(CONF.MOTIFID_LABEL + seperator + CONF.ZSCORE_LABEL + seperator + CONF.PVALUE_LABEL + seperator 
+				+ CONF.STD_DEV_LABEL + "\n");
 		
 		parseNetworks();
 		outBuffer.append(computeSignificance());
@@ -243,7 +251,8 @@ public class ExtractSignificanceMotifs {
 
 	public static void main(String[] args) {
 		try {
-			new ExtractSignificanceMotifs(3, "/home/mitra/workspace/uni-workspace/WaRSwapSoftApp/builds/build_1.0/sample_inputs/output/output.rand.subg_subgraphs/", "output.ORIG.subg.out", "motifs.txt", ".subg.out").extractSubGraphsInfo();
+			new ExtractSignificanceMotifs(3, "/home/mitra/workspace/WaRSwapSoftApp/sample_inputs/output/output.rand.subg_subgraphs",
+					"output.ORIG.subg.out", "motifs.txt", ".subg.out").extractSubGraphsInfo();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

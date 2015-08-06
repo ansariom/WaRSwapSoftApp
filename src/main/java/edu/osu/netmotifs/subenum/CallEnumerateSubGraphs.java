@@ -59,10 +59,12 @@ public class CallEnumerateSubGraphs {
             writer.write(logForOutput);
             writer.flush();
             
-            if (motifSize == 1) {
+            if (motifSize == 1) 
             	OneNodeMotifsEnumeration(inputGraphPath, outputPath, graph.vertexCount(), stopwatch, writer);
-            } else 
+            else if (motifSize < 6)
             	SMPEnumerator.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
+            else 
+            	SMPEnumeratorString.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
 
         } catch (Exception e) {
             e.printStackTrace();

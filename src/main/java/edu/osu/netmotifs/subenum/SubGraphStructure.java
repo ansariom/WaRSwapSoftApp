@@ -81,7 +81,7 @@ public class SubGraphStructure {
             throw new IllegalArgumentException("The vertex is not available!");
         int out_degree = 0;
         for (int i = 0; i < nodes.length; i++)
-            if (getEdgeAt(index, i) == 1)
+            if (getEdgeAt(index, i) == 1 && i != index)
                 out_degree++;
         return out_degree;
     }
@@ -93,7 +93,7 @@ public class SubGraphStructure {
             throw new IllegalArgumentException("The vertex is not available!");
         int in_degree = 0;
         for (int i = 0; i < nodes.length; i++)
-            if (getEdgeAt(i, index) == 1)
+            if (getEdgeAt(i, index) == 1 && i != index)
                 in_degree++;
         return in_degree;
 
@@ -119,7 +119,7 @@ public class SubGraphStructure {
                 ranks[v] = getOutDegree(result.nodes[v]);
         else
             for (int v = 0; v < result.nodes.length; v++)
-                ranks[v] = (long) ((getOutDegree(result.nodes[v]) * nodes.length + getInDegree(result.nodes[v])) + (Math.pow(10, edges[(v * nodes.length) + v])));
+                ranks[v] = (long) ((getOutDegree(result.nodes[v]) * nodes.length + getInDegree(result.nodes[v])) + (Math.pow(100, edges[(v * nodes.length) + v])));
 
         SubenumUtil.rankedInsertionSort(result.nodes, ranks);
         

@@ -134,11 +134,13 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 				numberOfThreads = 1;
 			else {
 				numberOfThreads = Runtime.getRuntime().availableProcessors();
-				if (numberOfThreads > 2 ) 
+				if (numberOfThreads > 2 ) { 
 					numberOfThreads /= 2;
+					numberOfThreads++;
+				}
 			}
 			
-			logger.info("Number of threads = " + numberOfThreads);
+			logger.debug("Number of threads = " + numberOfThreads);
 		}catch(Throwable t) {
 			t.printStackTrace();
 		} 

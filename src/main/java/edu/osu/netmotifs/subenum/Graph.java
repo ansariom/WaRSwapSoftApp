@@ -47,6 +47,7 @@ public interface Graph {
     public SubGraphStructure getSubGraph(int[] vertex_set);
 
     public long getSubGraphAsLong(int[] vertex_set);
+    public String getSubGraphAsString(int[] vertex_set);
 
     public boolean hasEdge(int v, int w);
 

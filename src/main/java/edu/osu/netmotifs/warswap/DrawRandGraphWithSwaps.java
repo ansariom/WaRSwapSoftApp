@@ -241,7 +241,7 @@ public class DrawRandGraphWithSwaps {
 			 */
 
 			if (srcDeg > unsatTargetIdxs.size()) {
-				System.out.println("StartToSwap");
+//				System.out.println("StartToSwap");
 //				updateGraph(newGraph);
 				updateGraph_Hash();
 				long ts = System.currentTimeMillis();
@@ -252,8 +252,8 @@ public class DrawRandGraphWithSwaps {
 				swapEdges(srcVertex, unsatTargetIdxs, samplingWeightList,
 						tgtDegNewInxes, currentTgtDegList, tgtDegNewList,
 						currentTgtCapList, srcDeg, divFac, srcIdx, srcVDegList);
-				System.out
-						.println("Swap: " + (System.currentTimeMillis() - ts));
+//				System.out
+//						.println("Swap: " + (System.currentTimeMillis() - ts));
 			} else if (unsatTargetIdxs.size() >= 1) {
 //				long t1 = System.currentTimeMillis();
 				GenerateRandom generateRandom = new GenerateRandom(

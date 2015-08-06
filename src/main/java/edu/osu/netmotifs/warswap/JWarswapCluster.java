@@ -135,7 +135,10 @@ public class JWarswapCluster {
 			motifSize = Integer.valueOf(args[6]);
 			Integer.valueOf(args[7]);
 			noOfIterations = args[7];
-			CONF.setSelfLoop(Boolean.valueOf(detectSelfloops));
+			if (motifSize == 1)
+				CONF.setSelfLoop(true);
+			else
+				CONF.setSelfLoop(Boolean.valueOf(detectSelfloops));
 		} catch (Exception e) {
 			logger.error(e.getStackTrace());
 			return;
@@ -229,7 +232,7 @@ public class JWarswapCluster {
 			// Save in HTML file
 			GenerateMotifImages generateMotifImages = new GenerateMotifImages(colorHash, motifsOutFile, motifSize, 
 					motifsHtmOutFile);
-			generateMotifImages.createHtm(-1, -1, 25, false);
+			generateMotifImages.createHtm(-1, -1, 25, true);
 			cleanup();
 			session.exit();
 		} catch (Exception e) {

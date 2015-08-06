@@ -139,10 +139,9 @@ public class GenerateMotifImages {
 			String line = null;
 			colPerGraphHash = new HashMap<Integer, Color>();
 			String headStr= "<head><style>\ntable, th, td {\nborder: 1px solid black;\nborder-collapse: collapse;\ntext-align: center;}\n</style></head>";
-			String tableStr = "<table style=\"width:50%\"><tr bgcolor=\"#F1F1F1\"><th>Image</th><th>Z-score</th><th>P-Value</th><th>std-dev</th><th>Adj-Matrix</th></tr>";
+			String tableStr = "<table style=\"width:50%\"><tr bgcolor=\"#F1F1F1\"><th>Image</th><th>" + CONF.ZSCORE_LABEL + 
+					"</th><th>" + CONF.PVALUE_LABEL + "</th><th>" + CONF.STD_DEV_LABEL + "</th><th>" + CONF.MOTIFID_LABEL + "</th></tr>";
 			String seperator = "\t";
-			if (motifsFile.endsWith("csv"))
-				seperator = ",";
 			
 			line = bufferedReader.readLine();
 			while ((line = bufferedReader.readLine()) != null) {

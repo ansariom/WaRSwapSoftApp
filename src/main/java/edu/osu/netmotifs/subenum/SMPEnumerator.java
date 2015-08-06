@@ -135,55 +135,44 @@ public class SMPEnumerator {
                             if (state.subgraph.length >= motifSize)
                                 throw new IllegalStateException("This must never HAPPEN!!!");
 
-                            Stack<SMPState> innerStack = new Stack<SMPState>();
-                            
-                            while (!state.extension.isEmpty()) {
-                            	innerStack.push(new SMPState(state));
-                            	int w = state.extension.remove(state.extension.size() - 1);
+                            if (state.extension.isEmpty())
+                            	continue;
+                        	int w = state.extension.remove(state.extension.size() - 1);
+                        	if (!state.extension.isEmpty() && state.subgraph.length < motifSize -1)
+                        		stack.push(state);
 
-                            	while(!innerStack.isEmpty()) {
-                            		SMPState innerState = innerStack.pop();
-                            		w = innerState.extension.remove(innerState.extension.size() - 1);
-                                	
-	                                if (innerState.subgraph.length == motifSize - 1) {
-	                                	while (innerState.extension.size() >= 0) {
-		                                    found.getAndIncrement();
-		                                    System.arraycopy(innerState.subgraph, 0, foundSubGraph, 0, motifSize - 1);
-		                                    foundSubGraph[motifSize - 1] = w;//state.extension[i];
-		                                    if (useHPPC && motifSize <= 8) {
-		                                        long subl = graph.getSubGraphAsLong(foundSubGraph);
-		                                        luniqueMap.putOrAdd(subl, 1, 1);
-		                                        if (luniqueMap.size() > uniqueCap) {
-		                                            signatureRepo.add(luniqueMap, motifSize);
-		                                            luniqueMap.clear();
-		                                        }
-		                                    } else {
-		                                        SubGraphStructure sub = graph.getSubGraph(foundSubGraph);
-		                                        uniqueMap.add(sub.getAdjacencyArray());
-		                                        if (uniqueMap.elementSet().size() > uniqueCap) {
-		                                            signatureRepo.add(uniqueMap);
-		                                            uniqueMap.clear();
-		                                        }
-		                                    }
-		                                    if (innerState.extension.size() == 0) break;
-		                                    w = innerState.extension.remove(innerState.extension.size() - 1);
-	                                	}
-	                                	if (state.subgraph.length == motifSize - 1)
-	                                		state.extension.clear();
-	                                } else {
-	                                    SMPState new_state = innerState.expand(w, graph);
-	                                    if (new_state.extension.size() > 0)
-	                                        innerStack.add(new_state);
-	                                }
-	                                
-                            	}
-                            }
+                        	if (state.subgraph.length == motifSize - 1) {
+                        		while (state.extension.size() >= 0) {
+                        			found.getAndIncrement();
+                        			System.arraycopy(state.subgraph, 0, foundSubGraph, 0, motifSize - 1);
+                        			foundSubGraph[motifSize - 1] = w;//state.extension[i];
+                        			if (useHPPC && motifSize <= 20) {
+                        				long subl = graph.getSubGraphAsLong(foundSubGraph);
+                                        luniqueMap.putOrAdd(subl, 1, 1);
+                                        if (luniqueMap.size() > uniqueCap) {
+                                            signatureRepo.add(luniqueMap, motifSize);
+                                            luniqueMap.clear();
+                                        }
+                        			} else {
+                                        SubGraphStructure sub = graph.getSubGraph(foundSubGraph);
+                                        uniqueMap.add(sub.getAdjacencyArray());
+                                        if (uniqueMap.elementSet().size() > uniqueCap) {
+                                            signatureRepo.add(uniqueMap);
+                                            uniqueMap.clear();
+                                        }
+                                    }
+                        			if (state.extension.isEmpty())
+                        				break;
+                        			w = state.extension.remove(state.extension.size() - 1);
+                        		}
+                        		if (state.subgraph.length == motifSize - 1)
+                        			state.extension.clear();
+                        	} else {
+                        		SMPState new_state = state.expand(w, graph);
+                        		if (new_state.extension.size() > 0)
+                        			stack.add(new_state);
+                        	}
                         }
-                        if (verbose) {
-                            //lastReport.set(found.get());
-//                            System.out.printf("Found: %,d   \t LabelSet: %,d\n", found.get(), signatureRepo.size());
-                        }
-
                     }
                     signatureRepo.add(uniqueMap);
                     signatureRepo.add(luniqueMap, motifSize);

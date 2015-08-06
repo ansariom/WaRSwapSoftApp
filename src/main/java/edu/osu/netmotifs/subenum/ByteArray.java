@@ -67,14 +67,23 @@ public class ByteArray implements Comparable<ByteArray> {
 
     public static byte[] longToByteArray(long a, int size) {
     	byte[] temparr = new byte[size];
-        byte[] arr = new byte[size/2];
-        for (int i = 0; i < size; i++) {
-        	if ((a & (1L << i)) != 0)
+    	byte[] arr = new byte[size/2];
+    	for (int i = 0; i < size; i++) {
+    		if ((a & (1L << i)) != 0)
     			temparr[size - i -1] = 1;
-        }
-        for (int i = 0; i < size; i = i + 2) {
-        	arr[i/2] = (byte) (temparr[i + 1] + (temparr[i] * 2)); 
-			
+    	}
+    	for (int i = 0; i < size; i = i + 2) {
+    		arr[i/2] = (byte) (temparr[i + 1] + (temparr[i] * 2)); 
+    		
+    	}
+//        System.out.println(Arrays.toString(arr));
+    	return arr;
+    }
+    
+    public static byte[] stringToByteArray(String a) {
+        byte[] arr = new byte[a.length()];
+        for (int i = 0; i < a.length(); i++) {
+        	arr[i] = Byte.valueOf(a.substring(i, i+1));
 		}
 //        System.out.println(Arrays.toString(arr));
         return arr;
@@ -86,19 +95,30 @@ public class ByteArray implements Comparable<ByteArray> {
      * @return
      */
     public static long byteArrayToLong(byte[] arr) {
-        if (arr.length > 64)
-            throw new IllegalStateException("Array size is larger than 64: " + arr.length);
-
+    	if (arr.length > 64)
+    		throw new IllegalStateException("Array size is larger than 64: " + arr.length);
+    	
+    	long result = 0;
+    	int s = arr.length;
+    	for (int k = 0; k < s; k++) {
+    		for (int i = 0; i < 2; i++)
+    			if ((arr[s-k-1] & (1 << i)) != 0) {
+    				result |= (1L << ((k * 2) + i));                	
+    			}
+    	}
+    	
+    	return result;
+    }
+    
+    public static String byteArrayToString(byte[] arr) {
         long result = 0;
+        String str = "";
         int s = arr.length;
         for (int k = 0; k < s; k++) {
-        	for (int i = 0; i < 2; i++)
-                if ((arr[s-k-1] & (1 << i)) != 0) {
-                	result |= (1L << ((k * 2) + i));                	
-                }
+        	str += arr[k];
 		}
         
-        return result;
+        return str;
     }
 
     public byte[] getArray() {

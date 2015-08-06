@@ -143,10 +143,11 @@ public class MatGraph implements Graph {
     }
 
     public int edgeCount() {
-        int sum = 0;
-        for (int v : vColorHash.keySet())
-            sum += getNeighbors(v).length;
-        return sum;
+//        int sum = 0;
+//        for (int v : vColorHash.keySet())
+//            sum += getOutNeighborArray(v).length;
+//        return sum;
+    	return edgeCount;
     }
 
     @Override
@@ -178,6 +179,7 @@ public class MatGraph implements Graph {
     }
 
     private void addEdge(int source, int dest, byte color1, byte color2) {
+    	edgeCount++;
     	if (dest == source && CONF.considerSelfloop()) {
     		addVertex(source, Byte.valueOf("3"));
     		return;
@@ -244,6 +246,21 @@ public class MatGraph implements Graph {
         return ByteArray.byteArrayToLong(arr);
 
     }
+    
+	@Override
+	public String getSubGraphAsString(int[] vertex_set) {
+			
+		byte[] arr = new byte[vertex_set.length * vertex_set.length];
+		String arrayStr = "";
+		int k = 0;
+		for (int i = 0; i < vertex_set.length; i++) {
+			for (int j = 0; j < vertex_set.length; j++) {
+				arr[k] = adjArr[vertex_set[i] * table.size() + vertex_set[j]];
+				arrayStr += arr[k++];
+			}
+		}
+		return arrayStr;
+	}
 
     public boolean areNeighbor(int v, int w) {
     	if (v == w) return false;
@@ -269,7 +286,7 @@ public class MatGraph implements Graph {
      * @param targetColor
      */
     final private void update() {
-    	edgeCount = 0;
+//    	edgeCount = 0;
     	adjArr = new byte[table.size() * table.size()];
 //    	adjArr = new boolean[table.size() * table.size()];
     	for (int v : vColorHash.keySet()) {
@@ -292,7 +309,7 @@ public class MatGraph implements Graph {
     			Arrays.sort(adj.allArr);
     		adj.allSet = new IntOpenHashSet(adj.allArr.length, 0.5f);
     		adj.allSet.add(adj.allArr);
-    		edgeCount += adj.outArr.length;
+//    		edgeCount += adj.outArr.length;
     	}
     	
     }
@@ -325,5 +342,7 @@ public class MatGraph implements Graph {
         int[] allArr = new int[0];
         int[] outArr = new int[0];
     }
+
+
 
 }

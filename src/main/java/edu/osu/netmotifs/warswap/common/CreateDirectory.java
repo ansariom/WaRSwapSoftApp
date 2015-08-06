@@ -36,7 +36,7 @@ public class CreateDirectory {
 		File directory = new File(directoryPath);
 		if (directory.exists()) {
 			logger.debug("Directory already exists ...");
-
+			
 		} else {
 			logger.debug("Directory not exists, creating now");
 

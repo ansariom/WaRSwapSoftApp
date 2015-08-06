@@ -87,6 +87,16 @@ public class CONF implements Serializable {
 	public static byte MIR_Color = 1;
 	public static byte GENE_Color = 2;
 	public static byte SL_Color = 3;
+	
+	public static String CSV_FILE_TYPE = "csv";
+	public static String TEXT_FILE_TYPE = "text";
+	public static String HTML_FILE_TYPE = "html";
+
+	public static String ZSCORE_LABEL = "Z-score";
+	public static String PVALUE_LABEL = "P-value";
+	public static String STD_DEV_LABEL = "Std-dev";
+	public static String MOTIFID_LABEL = "Motif_ID";
+	
 
 	private static String OSName = System.getProperty("os.name").toLowerCase();
 
@@ -146,7 +156,7 @@ public class CONF implements Serializable {
 
 	public static final String FN_OUT_EXTENSION = ".subg.out";
 
-	public static final String INFINIT = "Inf";
+	public static final String INFINIT = "undefined";
 
 	public static final String MOTIFS_OUT_DIR = "motifs_output";
 
@@ -194,7 +204,9 @@ public class CONF implements Serializable {
 
 		String netDirectory = outBase + DIR_SEP + networkName;
 		properties.setProperty(NET_DIR_KEY, netDirectory);
+		CreateDirectory.deleteDir(netDirectory);
 		CreateDirectory.createDir(netDirectory);
+		
 
 		String EdgVtxColorFilesOutDir = netDirectory + DIR_SEP + networkName
 				+ EDGE_VTX_COLOR_OUT_DIR_SUFFIX;

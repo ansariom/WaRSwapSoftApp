@@ -54,7 +54,7 @@ public class HashGraph implements Graph {
     
  // ADDED by Mitra
     private HashMap<Integer, Byte> vColorHash = new HashMap<Integer, Byte>();
-
+    
     public static HashGraph readGraph(Reader reader) throws IOException {
         BufferedReader br = new BufferedReader(reader);
         String line;
@@ -129,10 +129,11 @@ public class HashGraph implements Graph {
     }
 
     public int edgeCount() {
-        int sum = 0;
-        for (int v : vColorHash.keySet())
-            sum += getNeighbors(v).length;
-        return sum;
+//        int sum = 0;
+//        for (int v : vColorHash.keySet())
+//            sum += getNeighbors(v).length;
+//        return sum;
+    	return edgeCount;
     }
 
     private boolean containsVertex(int vertex) {
@@ -155,6 +156,7 @@ public class HashGraph implements Graph {
     private void addEdge(int source, int dest, byte color1, byte color2) {
     	// ADDED by Mitra : not allowed to set self-loop edges in this way
     	// Instead we  assign different colors to self loops
+    	edgeCount++;
     	if (source == dest && CONF.considerSelfloop()) {
     		addVertex(source, Byte.valueOf("3"));
     		return;
@@ -204,7 +206,7 @@ public class HashGraph implements Graph {
     }
 
     final private void update() {
-        edgeCount = 0;
+//        edgeCount = 0;
         for (int v : vColorHash.keySet()) {
             Adjacency adj = table.get(v);
 
@@ -219,7 +221,7 @@ public class HashGraph implements Graph {
             adj.allSet = new IntOpenHashSet(adj.allArr.length, 0.5f);
             adj.allSet.add(adj.allArr);
 
-            edgeCount += adj.outArr.length;
+//            edgeCount += adj.outArr.length;
         }
 
     }
@@ -295,6 +297,20 @@ public class HashGraph implements Graph {
         int[] allArr = new int[0];
         int[] outArr = new int[0];
     }
+
+	@Override
+	public String getSubGraphAsString(int[] vertex_set) {
+		byte[] arr = new byte[vertex_set.length * vertex_set.length];
+		String arrayStr = "";
+		int k = 0;
+		for (int i = 0; i < vertex_set.length; i++) {
+			for (int j = 0; j < vertex_set.length; j++) {
+				arr[k] = getEdge(vertex_set[i], vertex_set[j]);
+				arrayStr += arr[k++];
+			}
+		}
+		return arrayStr;
+	}
 
     
 }
