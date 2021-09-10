@@ -70,6 +70,8 @@ public class JWarswap {
 		String vFileIn = args[1];
 		String eFileOut = args[2];
 		String logFile = args[3];
+		String facString = args[4];
+		Double factor = Double.valueOf(facString);
 
 		long t1 = System.currentTimeMillis();
 		try {
@@ -79,7 +81,7 @@ public class JWarswap {
 
 			LoadLogger.setLogger1(logFile, null, null);
 			DrawRandGraphWithSwaps drawRandGraphWithSwaps = new DrawRandGraphWithSwaps(
-					logger, vFileIn, eFileOut, tableName);
+					logger, vFileIn, eFileOut, tableName, factor);
 
 			drawRandGraphWithSwaps.loadGraph(fanmodFileIn);
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, TF_Color);

@@ -136,6 +136,7 @@ public class CONF implements Serializable {
 	public static final String WR_EOUTDIR_KEY = "jgraphEdgeOutDir";
 	public static final String WR_OUTDIR_KEY = "jgraphOutDir";
 	public static final String SELFLOOP_KEY = "selfloop";
+	public static final String CORRECTION_FACTOR = "correctionfactor";
 	public static final String PREFIX_KEY = "prefix";
 	public static final String EDGE_VTX_COLOR_FILE_KEY = "edggVtxColorFileIn";
 	public static final String PROP_FILE_NAME = "config.properties";
@@ -174,6 +175,10 @@ public class CONF implements Serializable {
 	
 	public static void setSelfLoop(boolean considerSelfloop) {
 		properties.setProperty(SELFLOOP_KEY, String.valueOf(considerSelfloop));
+	}
+	
+	public static void setFactor(double factor) {
+		properties.setProperty(CORRECTION_FACTOR, String.valueOf(factor));
 	}
 	
 	public static void setMotisOutFile(String motifsOutFile) {

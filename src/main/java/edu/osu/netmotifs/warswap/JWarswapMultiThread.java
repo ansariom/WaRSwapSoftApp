@@ -93,12 +93,13 @@ public class JWarswapMultiThread implements Callable<String> {
 	}
 
 	public JWarswapMultiThread(String inEdgFile, String inVtxFile, String outBase,
-			String networkName, int motifSize, boolean hasSelfLoops) throws Exception {
+			String networkName, int motifSize, boolean hasSelfLoops, double factor) throws Exception {
 		try {
 			//indicates that the software is running in PC mode
 			setRunningMode(PC_MODE);
 
 			CONF.setSelfLoop(hasSelfLoops);
+			CONF.setFactor(factor);
 			
 			// set input/output options
 			numericalVertexFile = inVtxFile + ".txt";
@@ -184,7 +185,7 @@ public class JWarswapMultiThread implements Callable<String> {
 
 	public static void main(String[] args) {
 		try {
-			new JWarswapMultiThread(args[0], args[1], args[2], args[3], 3, true)
+			new JWarswapMultiThread(args[0], args[1], args[2], args[3], 3, true, 6.0)
 					.call();
 		} catch (Exception e) {
 			e.printStackTrace();
