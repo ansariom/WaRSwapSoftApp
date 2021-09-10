@@ -65,6 +65,7 @@ import static edu.osu.netmotifs.warswap.common.CONF.VTX_FILEIN_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.WIN_OS;
 import static edu.osu.netmotifs.warswap.common.CONF.WR_EOUTDIR_KEY;
 import static edu.osu.netmotifs.warswap.common.CONF.WR_OUTDIR_KEY;
+import static edu.osu.netmotifs.warswap.common.CONF.CORRECTION_FACTOR;
 import static edu.osu.netmotifs.warswap.common.CONF.properties;
 
 import java.io.BufferedReader;
@@ -173,12 +174,13 @@ import edu.osu.netmotifs.warswap.common.ThreadLogger;
 	private void runWarswap() throws Exception {
 		GraphDAO graphDAO = GraphDAO.getInstance();
 		String tableName = "wrswap"+jobNo;
+		Double factor = Double.valueOf(properties.getProperty(CORRECTION_FACTOR));
 		
 		long t1 = System.currentTimeMillis();
 		try {
 			graphDAO.createTable(tableName);
 			DrawRandGraphWithSwaps drawRandGraphWithSwaps = new DrawRandGraphWithSwaps(
-					logger, properties.getProperty(VTX_FILEIN_KEY), edgeOutFile, tableName);
+					logger, properties.getProperty(VTX_FILEIN_KEY), edgeOutFile, tableName, factor);
 			drawRandGraphWithSwaps.loadGraph(properties.getProperty(EDGE_VTX_COLOR_FILE_KEY));
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, TF_Color);
 			drawRandGraphWithSwaps.sortedLayerDrawWithSwaps(TF_Color, MIR_Color);

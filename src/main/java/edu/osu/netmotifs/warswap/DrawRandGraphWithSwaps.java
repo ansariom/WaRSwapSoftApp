@@ -99,8 +99,9 @@ public class DrawRandGraphWithSwaps {
 
 
 	public DrawRandGraphWithSwaps(Logger logger, String vertexFileIn,
-			String edgeFileOut, String tableName) {
+			String edgeFileOut, String tableName, Double f) {
 		swapCount = 0;
+		this.factor = f;
 		this.tableName = tableName;
 		seed = Math.abs(new Random().nextInt());
 		this.logger = logger;
@@ -185,7 +186,7 @@ public class DrawRandGraphWithSwaps {
 		
 
 		/** Factor related Calculations */
-		calculateFactor(tgtVDegList, srcVDegList, m);
+//		calculateFactor(tgtVDegList, srcVDegList, m);
 		double divFac = factor * m;
 		if (divFac == 0) {
 			throw new DivisionByZeroException();

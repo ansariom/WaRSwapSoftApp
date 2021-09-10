@@ -102,6 +102,8 @@ import edu.osu.netmotifs.warswap.common.exception.EdgeFileFormatException;
 import edu.osu.netmotifs.warswap.common.exception.VertexEdgeDontMatchException;
 import edu.osu.netmotifs.warswap.common.exception.VertexFileDoesNotExistException;
 import edu.osu.netmotifs.warswap.common.exception.VertexFileFormatException;
+import edu.osu.netmotifs.warswap.ui.SaveOptionsUI;
+import edu.osu.netmotifs.warswap.ui.GenerateMotifsTextOutput;
 
 /**
  * This class provides user interface for running WaRSwap Software Application
@@ -120,6 +122,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 	private int maxVId = 0;
 	private int maxEId = 0;
 	private int motifSize = 3;
+	private double factor = 6.0;
 	private String motifOutputFile = "";
 	protected StartWarswapSoftApp thisClass;
 	private SaveOptionsUI saveOptionsUI;
@@ -148,6 +151,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 			String inEdgeFile = inEdgTxt.getText();
 			String inDir = new File(inEdgeFile).getParent();
 			String inVtxFile = inVtxTxt.getText();
+			factor = Double.valueOf(factorTxt.getText());
 			motifSize = Integer.valueOf(motifSizeCombo.getSelectedItem().toString());
 			int nOfRandNets = Integer.valueOf(randNetTxt.getText());
 			motifOutputFile = outDirTxt.getText() + DIR_SEP + MOTIFS_OUT_FILE_NAME;
@@ -158,7 +162,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				inputVertexFormatCheck(inVtxFile);
 				inputEdgeFormatCheck(inEdgeFile);
 				jWarswapMultiThread = new JWarswapMultiThread(inEdgeFile, inVtxFile,
-						inDir, OUT_DIR_NAME, motifSize, selfLoopCheck.isSelected());
+						inDir, OUT_DIR_NAME, motifSize, selfLoopCheck.isSelected(), factor);
 			} catch (Exception e) {
 				updateReportConsole(ERROR_MSG_TYPE, e.getMessage());
 				e.printStackTrace();
@@ -794,6 +798,8 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 		geneBtn = new javax.swing.JButton();
 		jLabel4 = new javax.swing.JLabel();
 		sloopBtn = new javax.swing.JButton();
+		jLabel5 = new javax.swing.JLabel();
+		factorTxt = new javax.swing.JTextField();
 		reloadBtn = new javax.swing.JButton();
 		saveHtmBtn = new javax.swing.JButton();
 		jPanel2 = new javax.swing.JPanel();
@@ -862,9 +868,13 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 
 		geneBtn.setBackground(java.awt.Color.black);
 
-		jLabel4.setText("Self-loop");
+		jLabel4.setText("Self-loops");
 
 		sloopBtn.setBackground(java.awt.Color.cyan);
+		
+		jLabel5.setText("Correction Factor: ");
+		
+		factorTxt.setText("6.0");
 
 		javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(
 				jPanel1);
@@ -874,7 +884,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 				jPanel1Layout
 						.createSequentialGroup()
 						.addComponent(jLabel1)
-						.addGap(4, 4, 4)
+//						.addGap(4, 4, 4)
 						.addComponent(TFBtn,
 								javax.swing.GroupLayout.PREFERRED_SIZE, 23,
 								javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -896,6 +906,7 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 						.addComponent(sloopBtn,
 								javax.swing.GroupLayout.PREFERRED_SIZE, 23,
 								javax.swing.GroupLayout.PREFERRED_SIZE)
+						.addGap(0, 57, Short.MAX_VALUE)
 						.addGap(0, 57, Short.MAX_VALUE)));
 		jPanel1Layout
 				.setVerticalGroup(jPanel1Layout
@@ -1110,6 +1121,18 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 																				96,
 																				96)
 																		.addComponent(
+																				jLabel5)
+																		.addPreferredGap(
+																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+																		.addComponent(
+																				factorTxt,
+																				javax.swing.GroupLayout.PREFERRED_SIZE,
+																				javax.swing.GroupLayout.DEFAULT_SIZE,
+																				javax.swing.GroupLayout.PREFERRED_SIZE)
+																		.addGap(96,
+																				96,
+																				96)
+																		.addComponent(
 																				selfLoopCheck))
 														.addGroup(
 																jPanel3Layout
@@ -1139,6 +1162,13 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 																motifSizeLbl)
 														.addComponent(
 																motifSizeCombo,
+																javax.swing.GroupLayout.PREFERRED_SIZE,
+																javax.swing.GroupLayout.DEFAULT_SIZE,
+																javax.swing.GroupLayout.PREFERRED_SIZE)
+														.addComponent(
+																jLabel5)
+														.addComponent(
+																factorTxt,
 																javax.swing.GroupLayout.PREFERRED_SIZE,
 																javax.swing.GroupLayout.DEFAULT_SIZE,
 																javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1552,6 +1582,8 @@ public class StartWarswapSoftApp extends JFrame implements ActionListener,
 	private javax.swing.JLabel jLabel2;
 	private javax.swing.JLabel jLabel3;
 	private javax.swing.JLabel jLabel4;
+	private javax.swing.JLabel jLabel5;
+	private javax.swing.JTextField factorTxt;
 	private javax.swing.JPanel jPanel1;
 	private javax.swing.JPanel jPanel2;
 	private javax.swing.JPanel jPanel3;

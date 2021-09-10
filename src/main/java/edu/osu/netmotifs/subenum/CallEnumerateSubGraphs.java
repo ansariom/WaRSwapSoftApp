@@ -64,7 +64,7 @@ public class CallEnumerateSubGraphs {
             else if (motifSize < 6)
             	SMPEnumerator.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
             else 
-            	SMPEnumeratorString.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
+            	SMPEnumerator.enumerateNonIsoInParallel(graph, motifSize, noOfThreads, stopwatch, writer);
 
         } catch (Exception e) {
             e.printStackTrace();
